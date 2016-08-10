@@ -20,23 +20,23 @@ namespace Nop.Plugin.Payments.BrainTree
         #region Fields
 
         private readonly ICustomerService _customerService;
-        private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
         private readonly ISettingService _settingService;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
+        private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
 
         #endregion
 
         #region Ctor
 
         public BrainTreePaymentProcessor(ICustomerService customerService, 
-            BrainTreePaymentSettings brainTreePaymentSettings,
             ISettingService settingService, 
-            IOrderTotalCalculationService orderTotalCalculationService)
+            IOrderTotalCalculationService orderTotalCalculationService,
+            BrainTreePaymentSettings brainTreePaymentSettings)
         {
             this._customerService = customerService;
-            this._brainTreePaymentSettings = brainTreePaymentSettings;
             this._settingService = settingService;
             this._orderTotalCalculationService = orderTotalCalculationService;
+            this._brainTreePaymentSettings = brainTreePaymentSettings;
         }
 
         #endregion

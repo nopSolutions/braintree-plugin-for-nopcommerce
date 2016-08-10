@@ -15,10 +15,16 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
 {
     public class PaymentBrainTreeController : BasePaymentController
     {
+        #region Fields
+
         private readonly ISettingService _settingService;
         private readonly ILocalizationService _localizationService;
         private readonly IWorkContext _workContext;
         private readonly IStoreService _storeService;
+
+        #endregion
+
+        #region Ctor
 
         public PaymentBrainTreeController(ISettingService settingService,
             ILocalizationService localizationService, 
@@ -30,7 +36,11 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             this._workContext = workContext;
             this._storeService = storeService;
         }
-        
+
+        #endregion
+
+        #region Methods
+
         [AdminAuthorize]
         [ChildActionOnly]
         public ActionResult Configure()
@@ -86,38 +96,17 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             /* We do not clear cache after each setting update.
              * This behavior can increase performance because cached settings will not be cleared 
              * and loaded from database after each update */
-            if (model.UseSandbox_OverrideForStore || storeScope == 0)
-                _settingService.SaveSetting(brainTreePaymentSettings, x => x.UseSandBox, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(brainTreePaymentSettings, x => x.UseSandBox, storeScope);
-
-            if (model.PublicKey_OverrideForStore || storeScope == 0)
-                _settingService.SaveSetting(brainTreePaymentSettings, x => x.PublicKey, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(brainTreePaymentSettings, x => x.PublicKey, storeScope);
-
-            if (model.PrivateKey_OverrideForStore || storeScope == 0)
-                _settingService.SaveSetting(brainTreePaymentSettings, x => x.PrivateKey, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(brainTreePaymentSettings, x => x.PrivateKey, storeScope);
-
-            if (model.MerchantId_OverrideForStore || storeScope == 0)
-                _settingService.SaveSetting(brainTreePaymentSettings, x => x.MerchantId, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(brainTreePaymentSettings, x => x.MerchantId, storeScope);
-
-            if (model.AdditionalFee_OverrideForStore || storeScope == 0)
-                _settingService.SaveSetting(brainTreePaymentSettings, x => x.AdditionalFee, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(brainTreePaymentSettings, x => x.AdditionalFee, storeScope);
-
-            if (model.AdditionalFeePercentage_OverrideForStore || storeScope == 0)
-                _settingService.SaveSetting(brainTreePaymentSettings, x => x.AdditionalFeePercentage, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(brainTreePaymentSettings, x => x.AdditionalFeePercentage, storeScope);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.UseSandBox, model.UseSandbox_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.PublicKey, model.PublicKey_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.PrivateKey, model.PrivateKey_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.MerchantId, model.MerchantId_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.AdditionalFee, model.AdditionalFee_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.AdditionalFeePercentage, model.AdditionalFeePercentage_OverrideForStore, storeScope, false);
 
             //now clear settings cache
             _settingService.ClearCache();
+
+            SuccessNotification(_localizationService.GetResource("Admin.Plugins.Saved"));
 
             return Configure();
         }
@@ -141,7 +130,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             //months
             for (int i = 1; i <= 12; i++)
             {
-                string text = (i < 10) ? "0" + i.ToString() : i.ToString();
+                string text = (i < 10) ? "0" + i : i.ToString();
                 model.ExpireMonths.Add(new SelectListItem()
                 {
                     Text = text,
@@ -202,5 +191,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
                                   };
             return paymentInfo;
         }
+
+        #endregion
     }
 }
