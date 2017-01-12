@@ -17,6 +17,15 @@ namespace Nop.Plugin.Payments.BrainTree
 {
     public class BrainTreePaymentProcessor : BasePlugin, IPaymentMethod
     {
+        #region Constants
+
+        /// <summary>
+        /// nopCommerce partner code
+        /// </summary>
+        private const string BN_CODE = "nopCommerce_SP";
+
+        #endregion
+
         #region Fields
 
         private readonly ICustomerService _customerService;
@@ -73,7 +82,8 @@ namespace Nop.Plugin.Payments.BrainTree
             //new transaction request
             var transactionRequest = new TransactionRequest
             {
-                Amount = processPaymentRequest.OrderTotal
+                Amount = processPaymentRequest.OrderTotal,
+                Channel = BN_CODE
             };
 
             //transaction credit card request
@@ -373,7 +383,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             get
             {
-                return RecurringPaymentType.Manual;
+                return RecurringPaymentType.NotSupported;
             }
         }
 
