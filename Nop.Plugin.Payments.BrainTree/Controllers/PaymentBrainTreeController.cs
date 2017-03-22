@@ -70,7 +70,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
                 model.AdditionalFeePercentage_OverrideForStore = _settingService.SettingExists(brainTreePaymentSettings, x => x.AdditionalFeePercentage, storeScope);
             }
 
-            return View("~/Plugins/Payments.BrainTree/Views/PaymentBrainTree/Configure.cshtml", model);
+            return View("~/Plugins/Payments.BrainTree/Views/Configure.cshtml", model);
         }
 
         [HttpPost]
@@ -151,7 +151,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             if (selectedYear != null)
                 selectedYear.Selected = true;
 
-            return View("~/Plugins/Payments.BrainTree/Views/PaymentBrainTree/PaymentInfo.cshtml", model);
+            return View("~/Plugins/Payments.BrainTree/Views/PaymentInfo.cshtml", model);
         }
 
         [NonAction]
