@@ -1,18 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Plugin.Payments.BrainTree.Models;
-using Nop.Plugin.Payments.BrainTree.Validators;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
-using Nop.Services.Payments;
+using Nop.Services.Security;
 using Nop.Services.Stores;
+using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc.Filters;
 
 namespace Nop.Plugin.Payments.BrainTree.Controllers
 {
+    [AuthorizeAdmin]
+    [Area(AreaNames.Admin)]
     public class PaymentBrainTreeController : BasePaymentController
     {
         #region Fields
@@ -21,6 +21,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         private readonly ILocalizationService _localizationService;
         private readonly IWorkContext _workContext;
         private readonly IStoreService _storeService;
+        private readonly IPermissionService _permissionService;
 
         #endregion
 
@@ -29,36 +30,39 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         public PaymentBrainTreeController(ISettingService settingService,
             ILocalizationService localizationService, 
             IWorkContext workContext, 
-            IStoreService storeService)
+            IStoreService storeService,
+            IPermissionService permissionService)
         {
             this._settingService = settingService;
             this._localizationService = localizationService;
             this._workContext = workContext;
             this._storeService = storeService;
+            this._permissionService = permissionService;
         }
 
         #endregion
 
         #region Methods
-
-        [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        
+        public IActionResult Configure()
         {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
+                return AccessDeniedView();
+
             //load settings for a chosen store scope
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var brainTreePaymentSettings = _settingService.LoadSetting<BrainTreePaymentSettings>(storeScope);
 
             var model = new ConfigurationModel
-                            {
-                                ActiveStoreScopeConfiguration = storeScope,
-                                UseSandBox = brainTreePaymentSettings.UseSandBox,
-                                PublicKey = brainTreePaymentSettings.PublicKey,
-                                PrivateKey = brainTreePaymentSettings.PrivateKey,
-                                MerchantId = brainTreePaymentSettings.MerchantId,
-                                AdditionalFee = brainTreePaymentSettings.AdditionalFee,
-                                AdditionalFeePercentage = brainTreePaymentSettings.AdditionalFeePercentage
-                            };
+            {
+                ActiveStoreScopeConfiguration = storeScope,
+                UseSandBox = brainTreePaymentSettings.UseSandBox,
+                PublicKey = brainTreePaymentSettings.PublicKey,
+                PrivateKey = brainTreePaymentSettings.PrivateKey,
+                MerchantId = brainTreePaymentSettings.MerchantId,
+                AdditionalFee = brainTreePaymentSettings.AdditionalFee,
+                AdditionalFeePercentage = brainTreePaymentSettings.AdditionalFeePercentage
+            };
 
             if (storeScope > 0)
             {
@@ -74,15 +78,16 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         }
 
         [HttpPost]
-        [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
+                return AccessDeniedView();
+
             if (!ModelState.IsValid)
                 return Configure();
 
             //load settings for a chosen store scope
-            var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var brainTreePaymentSettings = _settingService.LoadSetting<BrainTreePaymentSettings>(storeScope);
 
             //save settings
@@ -109,87 +114,6 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             SuccessNotification(_localizationService.GetResource("Admin.Plugins.Saved"));
 
             return Configure();
-        }
-
-        [ChildActionOnly]
-        public ActionResult PaymentInfo()
-        {
-            var model = new PaymentInfoModel();
-            
-            //years
-            for (int i = 0; i < 15; i++)
-            {
-                string year = Convert.ToString(DateTime.Now.Year + i);
-                model.ExpireYears.Add(new SelectListItem()
-                {
-                    Text = year,
-                    Value = year,
-                });
-            }
-
-            //months
-            for (int i = 1; i <= 12; i++)
-            {
-                string text = (i < 10) ? "0" + i : i.ToString();
-                model.ExpireMonths.Add(new SelectListItem()
-                {
-                    Text = text,
-                    Value = i.ToString(),
-                });
-            }
-
-            //set postback values
-            var form = this.Request.Form;
-            model.CardholderName = form["CardholderName"];
-            model.CardNumber = form["CardNumber"];
-            model.CardCode = form["CardCode"];
-
-            var selectedMonth = model.ExpireMonths.Where(x => x.Value.Equals(form["ExpireMonth"], StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-            if (selectedMonth != null)
-                selectedMonth.Selected = true;
-            var selectedYear = model.ExpireYears.Where(x => x.Value.Equals(form["ExpireYear"], StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-            if (selectedYear != null)
-                selectedYear.Selected = true;
-
-            return View("~/Plugins/Payments.BrainTree/Views/PaymentInfo.cshtml", model);
-        }
-
-        [NonAction]
-        public override IList<string> ValidatePaymentForm(FormCollection form)
-        {
-            var warnings = new List<string>();
-
-            //validate
-            var validator = new PaymentInfoValidator(_localizationService);
-            var model = new PaymentInfoModel()
-            {
-                CardholderName = form["CardholderName"],
-                CardNumber = form["CardNumber"],
-                CardCode = form["CardCode"],
-                ExpireMonth = form["ExpireMonth"],
-                ExpireYear = form["ExpireYear"]
-            };
-            var validationResult = validator.Validate(model);
-            if (!validationResult.IsValid)
-                foreach (var error in validationResult.Errors)
-                {
-                    warnings.Add(error.ErrorMessage);
-                }
-            return warnings;
-        }
-
-        [NonAction]
-        public override ProcessPaymentRequest GetPaymentInfo(FormCollection form)
-        {
-            var paymentInfo = new ProcessPaymentRequest
-                                  {
-                                      CreditCardName = form["CardholderName"],
-                                      CreditCardNumber = form["CardNumber"],
-                                      CreditCardExpireMonth = int.Parse(form["ExpireMonth"]),
-                                      CreditCardExpireYear = int.Parse(form["ExpireYear"]),
-                                      CreditCardCvv2 = form["CardCode"]
-                                  };
-            return paymentInfo;
         }
 
         #endregion

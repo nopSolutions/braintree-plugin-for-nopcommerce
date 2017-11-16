@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Web.Routing;
 using Braintree;
+using Microsoft.AspNetCore.Http;
+using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
 using Nop.Plugin.Payments.BrainTree.Controllers;
+using Nop.Plugin.Payments.BrainTree.Models;
+using Nop.Plugin.Payments.BrainTree.Validators;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Orders;
@@ -32,24 +35,26 @@ namespace Nop.Plugin.Payments.BrainTree
         private readonly ISettingService _settingService;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
-
         private readonly ILocalizationService _localizationService;
+        private readonly IWebHelper _webHelper;
 
         #endregion
 
         #region Ctor
 
-        public BrainTreePaymentProcessor(ICustomerService customerService, 
-            ISettingService settingService, 
+        public BrainTreePaymentProcessor(ICustomerService customerService,
+            ISettingService settingService,
             IOrderTotalCalculationService orderTotalCalculationService,
             BrainTreePaymentSettings brainTreePaymentSettings,
-            ILocalizationService localizationService)
+            ILocalizationService localizationService,
+            IWebHelper webHelper)
         {
             this._customerService = customerService;
             this._settingService = settingService;
             this._orderTotalCalculationService = orderTotalCalculationService;
             this._brainTreePaymentSettings = brainTreePaymentSettings;
             this._localizationService = localizationService;
+            this._webHelper = webHelper;
         }
 
         #endregion
@@ -234,36 +239,58 @@ namespace Nop.Plugin.Payments.BrainTree
         public bool CanRePostProcessPayment(Order order)
         {
             if (order == null)
-                throw new ArgumentNullException("order");
+                throw new ArgumentNullException(nameof(order));
 
             //it's not a redirection payment method. So we always return false
             return false;
         }
 
-        /// <summary>
-        /// Gets a route for provider configuration
-        /// </summary>
-        /// <param name="actionName">Action name</param>
-        /// <param name="controllerName">Controller name</param>
-        /// <param name="routeValues">Route values</param>
-        public void GetConfigurationRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
+        public override string GetConfigurationPageUrl()
         {
-            actionName = "Configure";
-            controllerName = "PaymentBrainTree";
-            routeValues = new RouteValueDictionary { { "Namespaces", "Nop.Plugin.Payments.BrainTree.Controllers" }, { "area", null } };
+            return $"{_webHelper.GetStoreLocation()}Admin/PaymentBrainTree/Configure";
         }
 
-        /// <summary>
-        /// Gets a route for payment info
-        /// </summary>
-        /// <param name="actionName">Action name</param>
-        /// <param name="controllerName">Controller name</param>
-        /// <param name="routeValues">Route values</param>
-        public void GetPaymentInfoRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
+        
+
+        public IList<string> ValidatePaymentForm(IFormCollection form)
         {
-            actionName = "PaymentInfo";
-            controllerName = "PaymentBrainTree";
-            routeValues = new RouteValueDictionary { { "Namespaces", "Nop.Plugin.Payments.BrainTree.Controllers" }, { "area", null } };
+            var warnings = new List<string>();
+
+            //validate
+            var validator = new PaymentInfoValidator(_localizationService);
+            var model = new PaymentInfoModel
+            {
+                CardholderName = form["CardholderName"],
+                CardNumber = form["CardNumber"],
+                CardCode = form["CardCode"],
+                ExpireMonth = form["ExpireMonth"],
+                ExpireYear = form["ExpireYear"]
+            };
+            var validationResult = validator.Validate(model);
+            if (!validationResult.IsValid)
+                foreach (var error in validationResult.Errors)
+                {
+                    warnings.Add(error.ErrorMessage);
+                }
+            return warnings;
+        }
+
+        public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
+        {
+            var paymentInfo = new ProcessPaymentRequest
+            {
+                CreditCardName = form["CardholderName"],
+                CreditCardNumber = form["CardNumber"],
+                CreditCardExpireMonth = int.Parse(form["ExpireMonth"]),
+                CreditCardExpireYear = int.Parse(form["ExpireYear"]),
+                CreditCardCvv2 = form["CardCode"]
+            };
+            return paymentInfo;
+        }
+
+        public void GetPublicViewComponent(out string viewComponentName)
+        {
+            viewComponentName = "PaymentBrainTree";
         }
 
         public Type GetControllerType()
