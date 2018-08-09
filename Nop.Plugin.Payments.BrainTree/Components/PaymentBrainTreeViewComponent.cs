@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Plugin.Payments.BrainTree.Models;
@@ -36,7 +37,10 @@ namespace Nop.Plugin.Payments.BrainTree.Components
                 });
             }
 
-            //set postback values
+            //set postback values (we cannot access "Form" with "GET" requests)
+            if (Request.Method != WebRequestMethods.Http.Get)
+                return View("~/Plugins/Payments.BrainTree/Views/PaymentInfo.cshtml", model);
+
             var form = Request.Form;
             model.CardholderName = form["CardholderName"];
             model.CardNumber = form["CardNumber"];

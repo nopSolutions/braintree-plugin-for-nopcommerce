@@ -18,9 +18,8 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         #region Fields
 
         private readonly ISettingService _settingService;
+        private readonly IStoreContext _storeContext;
         private readonly ILocalizationService _localizationService;
-        private readonly IWorkContext _workContext;
-        private readonly IStoreService _storeService;
         private readonly IPermissionService _permissionService;
 
         #endregion
@@ -28,15 +27,13 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         #region Ctor
 
         public PaymentBrainTreeController(ISettingService settingService,
+            IStoreContext storeContext,
             ILocalizationService localizationService, 
-            IWorkContext workContext, 
-            IStoreService storeService,
             IPermissionService permissionService)
         {
+            this._storeContext = storeContext;
             this._settingService = settingService;
             this._localizationService = localizationService;
-            this._workContext = workContext;
-            this._storeService = storeService;
             this._permissionService = permissionService;
         }
 
@@ -50,7 +47,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
                 return AccessDeniedView();
 
             //load settings for a chosen store scope
-            var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = _storeContext.ActiveStoreScopeConfiguration;
             var brainTreePaymentSettings = _settingService.LoadSetting<BrainTreePaymentSettings>(storeScope);
 
             var model = new ConfigurationModel
@@ -87,7 +84,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
                 return Configure();
 
             //load settings for a chosen store scope
-            var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = _storeContext.ActiveStoreScopeConfiguration;
             var brainTreePaymentSettings = _settingService.LoadSetting<BrainTreePaymentSettings>(storeScope);
 
             //save settings

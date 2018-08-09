@@ -11,10 +11,10 @@ using Nop.Plugin.Payments.BrainTree.Models;
 using Nop.Plugin.Payments.BrainTree.Validators;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
+using Nop.Services.Localization;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Environment = Braintree.Environment;
-using Nop.Services.Localization;
 
 namespace Nop.Plugin.Payments.BrainTree
 {
@@ -34,6 +34,7 @@ namespace Nop.Plugin.Payments.BrainTree
         private readonly ICustomerService _customerService;
         private readonly ISettingService _settingService;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
+        private readonly IPaymentService _paymentService;
         private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
         private readonly ILocalizationService _localizationService;
         private readonly IWebHelper _webHelper;
@@ -45,6 +46,7 @@ namespace Nop.Plugin.Payments.BrainTree
         public BrainTreePaymentProcessor(ICustomerService customerService,
             ISettingService settingService,
             IOrderTotalCalculationService orderTotalCalculationService,
+            IPaymentService paymentService,
             BrainTreePaymentSettings brainTreePaymentSettings,
             ILocalizationService localizationService,
             IWebHelper webHelper)
@@ -52,6 +54,7 @@ namespace Nop.Plugin.Payments.BrainTree
             this._customerService = customerService;
             this._settingService = settingService;
             this._orderTotalCalculationService = orderTotalCalculationService;
+            this._paymentService = paymentService;
             this._brainTreePaymentSettings = brainTreePaymentSettings;
             this._localizationService = localizationService;
             this._webHelper = webHelper;
@@ -166,7 +169,7 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <returns>Additional handling fee</returns>
         public decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
-            var result = this.CalculateAdditionalFee(_orderTotalCalculationService, cart,
+            var result = _paymentService.CalculateAdditionalFee(cart,
                 _brainTreePaymentSettings.AdditionalFee, _brainTreePaymentSettings.AdditionalFeePercentage);
             return result;
         }
@@ -250,8 +253,6 @@ namespace Nop.Plugin.Payments.BrainTree
             return $"{_webHelper.GetStoreLocation()}Admin/PaymentBrainTree/Configure";
         }
 
-        
-
         public IList<string> ValidatePaymentForm(IFormCollection form)
         {
             var warnings = new List<string>();
@@ -288,9 +289,9 @@ namespace Nop.Plugin.Payments.BrainTree
             return paymentInfo;
         }
 
-        public void GetPublicViewComponent(out string viewComponentName)
+        public string GetPublicViewComponentName()
         {
-            viewComponentName = "PaymentBrainTree";
+            return "PaymentBrainTree";
         }
 
         public Type GetControllerType()
@@ -311,19 +312,19 @@ namespace Nop.Plugin.Payments.BrainTree
             _settingService.SaveSetting(settings);
 
             //locales
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox", "Use Sandbox");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint", "Check to enable Sandbox (testing environment).");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId", "Merchant ID");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint", "Enter Merchant ID");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey", "Public Key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint", "Enter Public key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey", "Private Key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint", "Enter Private key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee", "Additional fee");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.PaymentMethodDescription", "Pay by credit / debit card");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox", "Use Sandbox");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint", "Check to enable Sandbox (testing environment).");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId", "Merchant ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint", "Enter Merchant ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey", "Public Key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint", "Enter Public key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey", "Private Key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint", "Enter Private key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee", "Additional fee");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.PaymentMethodDescription", "Pay by credit / debit card");
 
             base.Install();
         }
@@ -334,19 +335,19 @@ namespace Nop.Plugin.Payments.BrainTree
             _settingService.DeleteSetting<BrainTreePaymentSettings>();
 
             //locales
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.BrainTree.PaymentMethodDescription");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.PaymentMethodDescription");
 
             base.Uninstall();
         }
