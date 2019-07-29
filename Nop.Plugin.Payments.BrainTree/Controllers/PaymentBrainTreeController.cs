@@ -3,6 +3,7 @@ using Nop.Core;
 using Nop.Plugin.Payments.BrainTree.Models;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
+using Nop.Services.Messages;
 using Nop.Services.Security;
 using Nop.Services.Stores;
 using Nop.Web.Framework;
@@ -17,24 +18,27 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
     {
         #region Fields
 
+        private readonly ILocalizationService _localizationService;
+        private readonly INotificationService _notificationService;
+        private readonly IPermissionService _permissionService;
         private readonly ISettingService _settingService;
         private readonly IStoreContext _storeContext;
-        private readonly ILocalizationService _localizationService;
-        private readonly IPermissionService _permissionService;
 
         #endregion
 
         #region Ctor
 
-        public PaymentBrainTreeController(ISettingService settingService,
-            IStoreContext storeContext,
-            ILocalizationService localizationService, 
-            IPermissionService permissionService)
+        public PaymentBrainTreeController(ILocalizationService localizationService,
+        INotificationService notificationService,
+        IPermissionService permissionService,
+            ISettingService settingService,
+            IStoreContext storeContext)
         {
-            this._storeContext = storeContext;
-            this._settingService = settingService;
-            this._localizationService = localizationService;
-            this._permissionService = permissionService;
+            _localizationService = localizationService;
+            _notificationService = notificationService;
+            _permissionService = permissionService;
+            _settingService = settingService;
+            _storeContext = storeContext;
         }
 
         #endregion
@@ -108,7 +112,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             //now clear settings cache
             _settingService.ClearCache();
 
-            SuccessNotification(_localizationService.GetResource("Admin.Plugins.Saved"));
+            _notificationService.SuccessNotification(_localizationService.GetResource("Admin.Plugins.Saved"));
 
             return Configure();
         }

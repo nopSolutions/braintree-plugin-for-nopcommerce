@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Braintree;
 using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
-using Nop.Core.Plugins;
 using Nop.Plugin.Payments.BrainTree.Controllers;
 using Nop.Plugin.Payments.BrainTree.Models;
 using Nop.Plugin.Payments.BrainTree.Validators;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Localization;
-using Nop.Services.Orders;
 using Nop.Services.Payments;
+using Nop.Services.Plugins;
 using Environment = Braintree.Environment;
 
 namespace Nop.Plugin.Payments.BrainTree
@@ -31,33 +31,30 @@ namespace Nop.Plugin.Payments.BrainTree
 
         #region Fields
 
-        private readonly ICustomerService _customerService;
-        private readonly ISettingService _settingService;
-        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
-        private readonly IPaymentService _paymentService;
         private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
+        private readonly ICustomerService _customerService;
         private readonly ILocalizationService _localizationService;
+        private readonly IPaymentService _paymentService;
+        private readonly ISettingService _settingService;
         private readonly IWebHelper _webHelper;
 
         #endregion
 
         #region Ctor
 
-        public BrainTreePaymentProcessor(ICustomerService customerService,
-            ISettingService settingService,
-            IOrderTotalCalculationService orderTotalCalculationService,
-            IPaymentService paymentService,
-            BrainTreePaymentSettings brainTreePaymentSettings,
+        public BrainTreePaymentProcessor(BrainTreePaymentSettings brainTreePaymentSettings, 
+            ICustomerService customerService,
             ILocalizationService localizationService,
+            IPaymentService paymentService,
+            ISettingService settingService,
             IWebHelper webHelper)
         {
-            this._customerService = customerService;
-            this._settingService = settingService;
-            this._orderTotalCalculationService = orderTotalCalculationService;
-            this._paymentService = paymentService;
-            this._brainTreePaymentSettings = brainTreePaymentSettings;
-            this._localizationService = localizationService;
-            this._webHelper = webHelper;
+            _brainTreePaymentSettings = brainTreePaymentSettings;
+            _customerService = customerService;
+            _localizationService = localizationService;
+            _paymentService = paymentService;
+            _settingService = settingService;
+            _webHelper = webHelper;
         }
 
         #endregion
@@ -129,13 +126,9 @@ namespace Nop.Plugin.Payments.BrainTree
 
             //result
             if (result.IsSuccess())
-            {
                 processPaymentResult.NewPaymentStatus = PaymentStatus.Paid;
-            }
             else
-            {
                 processPaymentResult.AddError("Error processing payment." + result.Message);
-            }
 
             return processPaymentResult;
         }
@@ -171,6 +164,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var result = _paymentService.CalculateAdditionalFee(cart,
                 _brainTreePaymentSettings.AdditionalFee, _brainTreePaymentSettings.AdditionalFeePercentage);
+
             return result;
         }
 
@@ -183,6 +177,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var result = new CapturePaymentResult();
             result.AddError("Capture method not supported");
+
             return result;
         }
 
@@ -195,6 +190,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var result = new RefundPaymentResult();
             result.AddError("Refund method not supported");
+
             return result;
         }
 
@@ -207,6 +203,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var result = new VoidPaymentResult();
             result.AddError("Void method not supported");
+
             return result;
         }
 
@@ -219,6 +216,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var result = new ProcessPaymentResult();
             result.AddError("Recurring payment not supported");
+
             return result;
         }
 
@@ -231,6 +229,7 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var result = new CancelRecurringPaymentResult();
             result.AddError("Recurring payment not supported");
+
             return result;
         }
 
@@ -268,11 +267,12 @@ namespace Nop.Plugin.Payments.BrainTree
                 ExpireYear = form["ExpireYear"]
             };
             var validationResult = validator.Validate(model);
-            if (!validationResult.IsValid)
-                foreach (var error in validationResult.Errors)
-                {
-                    warnings.Add(error.ErrorMessage);
-                }
+
+            if (validationResult.IsValid)
+                return warnings;
+
+            warnings.AddRange(validationResult.Errors.Select(error => error.ErrorMessage));
+
             return warnings;
         }
 
@@ -286,6 +286,7 @@ namespace Nop.Plugin.Payments.BrainTree
                 CreditCardExpireYear = int.Parse(form["ExpireYear"]),
                 CreditCardCvv2 = form["CardCode"]
             };
+
             return paymentInfo;
         }
 
@@ -305,9 +306,9 @@ namespace Nop.Plugin.Payments.BrainTree
             var settings = new BrainTreePaymentSettings
             {
                 UseSandBox = true,
-                MerchantId = "",
-                PrivateKey = "",
-                PublicKey = ""
+                MerchantId = string.Empty,
+                PrivateKey = string.Empty,
+                PublicKey = string.Empty
             };
             _settingService.SaveSetting(settings);
 
@@ -359,86 +360,43 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <summary>
         /// Gets a value indicating whether capture is supported
         /// </summary>
-        public bool SupportCapture
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public bool SupportCapture => false;
 
         /// <summary>
         /// Gets a value indicating whether partial refund is supported
         /// </summary>
-        public bool SupportPartiallyRefund
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public bool SupportPartiallyRefund => false;
 
         /// <summary>
         /// Gets a value indicating whether refund is supported
         /// </summary>
-        public bool SupportRefund
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public bool SupportRefund => false;
 
         /// <summary>
         /// Gets a value indicating whether void is supported
         /// </summary>
-        public bool SupportVoid
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public bool SupportVoid => false;
 
         /// <summary>
         /// Gets a recurring payment type of payment method
         /// </summary>
-        public RecurringPaymentType RecurringPaymentType
-        {
-            get
-            {
-                return RecurringPaymentType.NotSupported;
-            }
-        }
+        public RecurringPaymentType RecurringPaymentType => RecurringPaymentType.NotSupported;
 
         /// <summary>
         /// Gets a payment method type
         /// </summary>
-        public PaymentMethodType PaymentMethodType
-        {
-            get
-            {
-                return PaymentMethodType.Standard;
-            }
-        }
+        public PaymentMethodType PaymentMethodType => PaymentMethodType.Standard;
 
         /// <summary>
         /// Gets a value indicating whether we should display a payment information page for this plugin
         /// </summary>
-        public bool SkipPaymentInfo
-        {
-            get { return false; }
-        }
+        public bool SkipPaymentInfo => false;
 
         /// <summary>
         /// Gets a payment method description that will be displayed on checkout pages in the public store
         /// </summary>
-        public string PaymentMethodDescription
-        {
-            get { return _localizationService.GetResource("Plugins.Payments.BrainTree.PaymentMethodDescription"); }
-        }
+        public string PaymentMethodDescription => _localizationService.GetResource("Plugins.Payments.BrainTree.PaymentMethodDescription");
 
         #endregion
-
     }
 }
