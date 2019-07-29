@@ -20,8 +20,6 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         private readonly ISettingService _settingService;
         private readonly IStoreContext _storeContext;
         private readonly ILocalizationService _localizationService;
-        private readonly IWorkContext _workContext;
-        private readonly IStoreService _storeService;
         private readonly IPermissionService _permissionService;
 
         #endregion
@@ -31,15 +29,11 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
         public PaymentBrainTreeController(ISettingService settingService,
             IStoreContext storeContext,
             ILocalizationService localizationService, 
-            IWorkContext workContext, 
-            IStoreService storeService,
             IPermissionService permissionService)
         {
             this._storeContext = storeContext;
             this._settingService = settingService;
             this._localizationService = localizationService;
-            this._workContext = workContext;
-            this._storeService = storeService;
             this._permissionService = permissionService;
         }
 
