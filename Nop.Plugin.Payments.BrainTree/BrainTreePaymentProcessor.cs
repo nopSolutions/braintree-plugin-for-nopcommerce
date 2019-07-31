@@ -25,7 +25,7 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <summary>
         /// nopCommerce partner code
         /// </summary>
-        private const string BN_CODE = "nopCommerce_SP";
+        private const string BN_CODE = "nopCommerceCart";
 
         #endregion
 
@@ -88,10 +88,17 @@ namespace Nop.Plugin.Payments.BrainTree
                 PrivateKey = privateKey
             };
 
+            //search to see if customer is already in the vault
+            var searchRequest = new CustomerSearchRequest().Email.Is(customer.BillingAddress.Email);
+            var vaultCustomer = gateway.Customer.Search(searchRequest);
+
+            var customerId = vaultCustomer.FirstOrDefault()?.Id ?? string.Empty;
+
             //new transaction request
             var transactionRequest = new TransactionRequest
             {
                 Amount = processPaymentRequest.OrderTotal,
+                CustomerId = customerId,
                 Channel = BN_CODE
             };
 
@@ -100,9 +107,22 @@ namespace Nop.Plugin.Payments.BrainTree
             {
                 Number = processPaymentRequest.CreditCardNumber,
                 CVV = processPaymentRequest.CreditCardCvv2,
-                ExpirationDate = processPaymentRequest.CreditCardExpireMonth + "/" + processPaymentRequest.CreditCardExpireYear
+                ExpirationDate = processPaymentRequest.CreditCardExpireMonth + "/" + processPaymentRequest.CreditCardExpireYear,
             };
             transactionRequest.CreditCard = transactionCreditCardRequest;
+
+            //customer request
+            var customerRequest = new CustomerRequest
+            {
+                CustomerId = customerId,
+                FirstName = customer.BillingAddress.FirstName,
+                LastName = customer.BillingAddress.LastName,
+                Email = customer.BillingAddress.Email,
+                Fax = customer.BillingAddress.FaxNumber,
+                Company = customer.BillingAddress.Company,
+                Phone = customer.BillingAddress.PhoneNumber
+            };
+            transactionRequest.Customer = customerRequest;
 
             //address request
             var addressRequest = new AddressRequest
@@ -113,11 +133,12 @@ namespace Nop.Plugin.Payments.BrainTree
                 PostalCode = customer.BillingAddress.ZipPostalCode
             };
             transactionRequest.BillingAddress = addressRequest;
-
+            
             //transaction options request
             var transactionOptionsRequest = new TransactionOptionsRequest
             {
-                SubmitForSettlement = true
+                SubmitForSettlement = true,
+                ThreeDSecure = new TransactionOptionsThreeDSecureRequest( )
             };
             transactionRequest.Options = transactionOptionsRequest;
 
