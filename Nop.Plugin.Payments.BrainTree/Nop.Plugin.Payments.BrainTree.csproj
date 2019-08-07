@@ -39,13 +39,9 @@
   </ItemGroup>
  
   <ItemGroup>
-    <PackageReference Include="Braintree" Version="4.12.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" />
   </ItemGroup>
-
+ 
   <ItemGroup>
     <Reference Include="Braintree">
       <HintPath>Braintree.dll</HintPath>
