@@ -83,7 +83,7 @@ namespace Nop.Plugin.Payments.BrainTree.Components
             };
 
             
-            ViewBag.ClientToken = gateway.ClientToken.generate();
+            ViewBag.ClientToken = gateway.ClientToken.Generate();
             ViewBag.OrderTotal = _orderTotalCalculationService.GetShoppingCartTotal(cart);
 
             //set postback values (we cannot access "Form" with "GET" requests)
