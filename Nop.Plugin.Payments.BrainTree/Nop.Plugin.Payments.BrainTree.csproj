@@ -18,6 +18,13 @@
     <None Remove="Views\PaymentInfo.cshtml" />
   </ItemGroup>
   
+  <PropertyGroup Label="Globals">
+    <SccProjectName>SAK</SccProjectName>
+    <SccProvider>SAK</SccProvider>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+  </PropertyGroup>
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\Presentation\Nop.Web\Plugins\Payments.BrainTree</OutputPath>
     <OutDir>$(OutputPath)</OutDir>

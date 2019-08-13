@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Braintree;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -95,17 +96,18 @@ namespace Nop.Plugin.Payments.BrainTree
             var transactionRequest = new TransactionRequest
             {
                 Amount = processPaymentRequest.OrderTotal,
-                Channel = BN_CODE
+                Channel = BN_CODE,
+                PaymentMethodNonce = processPaymentRequest.CustomValues["CardNonce"].ToString(),
             };
 
             //transaction credit card request
-            var transactionCreditCardRequest = new TransactionCreditCardRequest
-            {
-                Number = processPaymentRequest.CreditCardNumber,
-                CVV = processPaymentRequest.CreditCardCvv2,
-                ExpirationDate = processPaymentRequest.CreditCardExpireMonth + "/" + processPaymentRequest.CreditCardExpireYear
-            };
-            transactionRequest.CreditCard = transactionCreditCardRequest;
+            //var transactionCreditCardRequest = new TransactionCreditCardRequest
+            //{
+            //    Number = processPaymentRequest.CreditCardNumber,
+            //    CVV = processPaymentRequest.CreditCardCvv2,
+            //    ExpirationDate = processPaymentRequest.CreditCardExpireMonth + "/" + processPaymentRequest.CreditCardExpireYear
+            //};
+            //transactionRequest.CreditCard = transactionCreditCardRequest;
 
             //address request
             var addressRequest = new AddressRequest
@@ -261,11 +263,12 @@ namespace Nop.Plugin.Payments.BrainTree
             var validator = new PaymentInfoValidator(_localizationService);
             var model = new PaymentInfoModel
             {
-                CardholderName = form["CardholderName"],
-                CardNumber = form["CardNumber"],
-                CardCode = form["CardCode"],
-                ExpireMonth = form["ExpireMonth"],
-                ExpireYear = form["ExpireYear"]
+                //CardholderName = form["CardholderName"],
+                //CardNumber = form["CardNumber"],
+                //CardCode = form["CardCode"],
+                //ExpireMonth = form["ExpireMonth"],
+                //ExpireYear = form["ExpireYear"]
+                CardNonce = form["CardNonce"]
             };
             var validationResult = validator.Validate(model);
             if (!validationResult.IsValid)
@@ -280,12 +283,16 @@ namespace Nop.Plugin.Payments.BrainTree
         {
             var paymentInfo = new ProcessPaymentRequest
             {
-                CreditCardName = form["CardholderName"],
-                CreditCardNumber = form["CardNumber"],
-                CreditCardExpireMonth = int.Parse(form["ExpireMonth"]),
-                CreditCardExpireYear = int.Parse(form["ExpireYear"]),
-                CreditCardCvv2 = form["CardCode"]
+                //CreditCardName = form["CardholderName"],
+                //CreditCardNumber = form["CardNumber"],
+                //CreditCardExpireMonth = int.Parse(form["ExpireMonth"]),
+                //CreditCardExpireYear = int.Parse(form["ExpireYear"]),
+                //CreditCardCvv2 = form["CardCode"]
+                
             };
+            if (form.TryGetValue("CardNonce", out StringValues cardNonce) && !StringValues.IsNullOrEmpty(cardNonce))
+                paymentInfo.CustomValues.Add("CardNonce", cardNonce.ToString());
+            
             return paymentInfo;
         }
 
