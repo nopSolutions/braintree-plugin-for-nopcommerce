@@ -154,7 +154,7 @@
         }
 
         function verifyCard(payload) {
-            console.log('@workContext.CurrentCustomer.BillingAddress?.Address1');
+            
             components.threeDSecure.verifyCard({
                 bin : payload.details.bin,
                 amount: '@ViewBag.OrderTotal',
