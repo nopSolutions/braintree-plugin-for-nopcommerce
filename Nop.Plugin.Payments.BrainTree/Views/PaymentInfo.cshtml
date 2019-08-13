@@ -1,44 +1,232 @@
 ﻿@{
     Layout = "";
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeClientScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeHostedFieldsScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.Braintree3DSecureScriptPath, excludeFromBundle: true);
+
 }
 @model Nop.Plugin.Payments.BrainTree.Models.PaymentInfoModel
 @using Nop.Web.Framework;
+@using Nop.Plugin.Payments.BrainTree
+@inject Nop.Core.IWorkContext workContext
+@inject Nop.Core.Domain.Orders.OrderSettings orderSettings
+@* Here is example = https://codepen.io/braintree/pen/ezvymm/?editors=0010 *@
+
+<style type="text/css">
+    .braintree-input {
+        height: 36px;
+        border: 1px solid #ddd;
+        padding: 8px;
+        vertical-align: middle;
+        color: #777;
+    }
+
+    .invalid-feedback {
+        display: none;
+        width: 100%;
+        margin-top: .25rem;
+        font-size: 80%;
+        color: #dc3545;
+    }
+</style>
+
+<input type="hidden" asp-for="Errors">
+<div style="color:red;margin:0 auto" id="braintree-errors">
+
+</div>
 <table width="100%" cellspacing="2" cellpadding="1" border="0">
     <tr>
         <td>
-            @Html.LabelFor(model => model.CardholderName, false):
+            <label>@T("Payment.CardNumber"):</label>
         </td>
         <td>
-            @Html.TextBoxFor(model => model.CardholderName, new { style = "Width: 165px;", autocomplete = "off" })
-            @Html.ValidationMessageFor(model => model.CardholderName)
-        </td>
-    </tr>
-    <tr>
-        <td>
-            @Html.LabelFor(model => model.CardNumber, false):
-        </td>
-        <td>
-            @Html.TextBoxFor(model => model.CardNumber, new { style = "Width: 165px;", autocomplete = "off", maxlength = 22 })
-            @Html.ValidationMessageFor(model => model.CardNumber)
+            <div class="braintree-input" id="braintree-card-number" style="width:165px;"></div>
         </td>
     </tr>
     <tr>
         <td>
-            @Html.LabelFor(model => model.ExpireMonth, false):
+            <label>@T("Payment.ExpirationDate"):</label>
         </td>
         <td>
-            @Html.DropDownListFor(model => model.ExpireMonth, Model.ExpireMonths)
-            /
-            @Html.DropDownListFor(model => model.ExpireYear, Model.ExpireYears)
+            <div class="braintree-input" id="braintree-expiration-date" style="width:65px;"></div>
         </td>
     </tr>
     <tr>
         <td>
-            @Html.LabelFor(model => model.CardCode, false):
+            <label>@T("Payment.CardCode"):</label>
         </td>
         <td>
-            @Html.TextBoxFor(model => model.CardCode, new { style = "Width: 60px;", autocomplete = "off", maxlength = 4 })
-            @Html.ValidationMessageFor(model => model.CardCode)
+            <div class="braintree-input" id="cc-cvv" style="width:65px;"></div>
+            <input id="CardNonce" name="CardNonce" type="hidden" />
         </td>
     </tr>
 </table>
+<div id="braintree-authentication">
+
+</div>
+
+<script>
+
+    $(document).ready(function () {
+
+        var authorization = '@ViewBag.ClientToken';
+        var submitForm = false;
+        var stepBack = false;
+
+        var onePageCheckout = @orderSettings.OnePageCheckoutEnabled.ToString().ToLower();
+
+        var components = {
+            client: null,
+            threeDSecure: null,
+            hostedFields: null,
+        };
+
+        var form = document.querySelector('#co-payment-info-form');
+        var bankFrame = document.querySelector('#braintree-authentication');
+
+        $('.payment-info-next-step-button').attr('onclick', null);
+
+        braintree.client.create({
+            authorization: authorization
+        }, onClientCreate);
+
+        function onClientCreate(err, client) {
+            if (err) {
+                //console.log('client error:', err);
+                return;
+            }
+            components.client = client;
+
+            braintree.hostedFields.create({
+                client: client,
+                //styles: {
+                //    input: {
+                //        'font-size': '14px',
+                //        'font-family': 'monospace'
+                //    }
+                //},
+                fields: {
+                    number: {
+                        selector: '#braintree-card-number',
+                        placeholder: '•••• •••• •••• ••••'
+                    },
+                    cvv: {
+                        selector: '#cc-cvv',
+                        placeholder: 'CVV'
+                    },
+                    expirationDate: {
+                        selector: '#braintree-expiration-date',
+                        placeholder: 'MM/YY'
+                    }
+                }
+            }, onComponent('hostedFields'));
+
+            braintree.threeDSecure.create({
+                client: client,
+                version: 2
+            }, onComponent('threeDSecure'));
+        }
+
+        function onComponent(name) {
+            return function(err, component) {
+                if (err) {
+                    //console.log('component error:', err);
+                    return;
+                }
+                components[name] = component;
+
+                if (components.threeDSecure && components.hostedFields) {
+                    //setupForm();
+                }
+            }
+        }
+
+        function addFrame(err, iframe) {
+            bankFrame.appendChild(iframe);
+            //modal.classList.remove('hidden');
+        }
+
+        function removeFrame() {
+            var iframe = bankFrame.querySelector('iframe');
+            //modal.classList.add('hidden');
+            iframe.parentNode.removeChild(iframe);
+        }
+
+        function verifyCard(payload) {
+            console.log('@workContext.CurrentCustomer.BillingAddress?.Address1');
+            components.threeDSecure.verifyCard({
+                bin : payload.details.bin,
+                amount: '@ViewBag.OrderTotal',
+                nonce: payload.nonce,
+                addFrame: addFrame,
+                removeFrame: removeFrame,
+                challengeRequested: true,
+                email: '@workContext.CurrentCustomer.BillingAddress?.Email',
+                billingAddress: {
+                    givenName: '@workContext.CurrentCustomer.BillingAddress?.FirstName',
+                    surname: '@workContext.CurrentCustomer.BillingAddress?.LastName',
+                    phoneNumber: '@workContext.CurrentCustomer.BillingAddress?.PhoneNumber',
+                    streetAddress: '@workContext.CurrentCustomer.BillingAddress?.Address1',
+                    extendedAddress: '@workContext.CurrentCustomer.BillingAddress?.Address2',
+                    locality: '@workContext.CurrentCustomer.BillingAddress?.City',
+                    region: '@workContext.CurrentCustomer.BillingAddress?.StateProvince?.Abbreviation',
+                    postalCode: '@workContext.CurrentCustomer.BillingAddress?.ZipPostalCode',
+                    countryCodeAlpha2: '@workContext.CurrentCustomer.BillingAddress?.Country?.TwoLetterIsoCode',
+                },
+                onLookupComplete: function (data, next) {
+                    // use `data` here, then call `next()`
+                    next();
+                }
+            }, function (err, payload) {
+                if (err) {
+                    //console.error(err);
+                    var currentErrorvalue = $('#@Html.IdFor(model => model.Errors)').val();
+                    $('#@Html.IdFor(model => model.Errors)').val(currentErrorvalue + '|' + err.message);
+                    return;
+                }
+
+                // Add the nonce to the form and submit
+                if(payload.liabilityShiftPossible  && payload.liabilityShifted)
+                {
+                    document.querySelector('#CardNonce').value = payload.nonce;
+                    submitForm = true;
+                }
+            });
+        }
+
+        $('input.payment-info-next-step-button').on('click', function (data) {
+            $('#braintree-errors').html('');
+            if (!submitForm) {
+                if (!stepBack) {
+                    components.hostedFields.tokenize(function(err, payload) {
+                        if (err) {
+                            console.log('tokenization error:', err);
+
+                            var currentErrorvalue = $('#@Html.IdFor(model => model.Errors)').val();
+                            $('#@Html.IdFor(model => model.Errors)').val(currentErrorvalue + '|' + err.message);
+
+                            $('#braintree-errors').html(err.message);
+                            return;
+                        } else {
+                            //console.log('tokenization success:', payload);
+                        }
+
+                        verifyCard(payload);
+                    });
+                }
+                return false;
+            }
+            else if (onePageCheckout) {
+                submitForm = false;
+                PaymentInfo.save();
+            }
+        });
+
+        $(document).on('accordion_section_opened', function (data) {
+            if (data && (data.currentSectionId == 'opc-billing' || data.currentSectionId == 'opc-shipping' || data.currentSectionId == 'opc-shipping_method' || data.currentSectionId == 'opc-payment_method')) {
+                stepBack = true;
+            }
+        });
+    });
+</script>
