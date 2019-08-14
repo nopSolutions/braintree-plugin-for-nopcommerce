@@ -3,7 +3,7 @@ using Nop.Web.Framework.Mvc.ModelBinding;
 
 namespace Nop.Plugin.Payments.BrainTree.Models
 {
-    public class ConfigurationModel : BaseNopModel
+    public class ConfigurationModel : BaseSearchModel
     {
         public int ActiveStoreScopeConfiguration { get; set; }
 
@@ -30,5 +30,9 @@ namespace Nop.Plugin.Payments.BrainTree.Models
         [NopResourceDisplayName("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage")]
         public bool AdditionalFeePercentage { get; set; }
         public bool AdditionalFeePercentage_OverrideForStore { get; set; }
+
+        [NopResourceDisplayName("Plugins.Payments.BrainTree.Fields.UseMultiCurrency")]
+        public bool UseMultiCurrency { get; set; }
+        public bool UseMultiCurrency_OverrideForStore { get; set; }
     }
 }

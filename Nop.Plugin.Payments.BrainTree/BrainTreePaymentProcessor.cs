@@ -7,10 +7,13 @@ using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Plugin.Payments.BrainTree.Controllers;
+using Nop.Plugin.Payments.BrainTree.Data;
 using Nop.Plugin.Payments.BrainTree.Models;
+using Nop.Plugin.Payments.BrainTree.Services;
 using Nop.Plugin.Payments.BrainTree.Validators;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
+using Nop.Services.Directory;
 using Nop.Services.Localization;
 using Nop.Services.Payments;
 using Nop.Services.Plugins;
@@ -31,30 +34,42 @@ namespace Nop.Plugin.Payments.BrainTree
 
         #region Fields
 
+        private readonly BrainTreeObjectContext _objectContext;
         private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
+        private readonly IBrainTreeService _brainTreeService;
+        private readonly ICurrencyService _currencyService;
         private readonly ICustomerService _customerService;
         private readonly ILocalizationService _localizationService;
         private readonly IPaymentService _paymentService;
         private readonly ISettingService _settingService;
         private readonly IWebHelper _webHelper;
+        private readonly IWorkContext _workContext;
 
         #endregion
 
         #region Ctor
 
-        public BrainTreePaymentProcessor(BrainTreePaymentSettings brainTreePaymentSettings, 
+        public BrainTreePaymentProcessor(BrainTreeObjectContext objectContext,
+            BrainTreePaymentSettings brainTreePaymentSettings,
+            IBrainTreeService brainTreeService,
+            ICurrencyService currencyService,
             ICustomerService customerService,
             ILocalizationService localizationService,
             IPaymentService paymentService,
             ISettingService settingService,
-            IWebHelper webHelper)
+            IWebHelper webHelper,
+            IWorkContext workContext)
         {
+            _objectContext = objectContext;
             _brainTreePaymentSettings = brainTreePaymentSettings;
+            _brainTreeService = brainTreeService;
+            _currencyService = currencyService;
             _customerService = customerService;
             _localizationService = localizationService;
             _paymentService = paymentService;
             _settingService = settingService;
             _webHelper = webHelper;
+            _workContext = workContext;
         }
 
         #endregion
@@ -94,12 +109,27 @@ namespace Nop.Plugin.Payments.BrainTree
 
             var customerId = vaultCustomer.FirstOrDefault()?.Id ?? string.Empty;
 
+            var currencyMerchantId = string.Empty;
+            var amount = processPaymentRequest.OrderTotal;
+
+            if (_brainTreePaymentSettings.UseMultiCurrency)
+            {
+                //get currency
+                var currency = _workContext.WorkingCurrency;
+
+                currencyMerchantId = _brainTreeService.GetMerchantId(currency.CurrencyCode);
+
+                if (!string.IsNullOrEmpty(currencyMerchantId))
+                    amount = _currencyService.ConvertCurrency(amount, currency.Rate);
+            }
+
             //new transaction request
             var transactionRequest = new TransactionRequest
             {
-                Amount = processPaymentRequest.OrderTotal,
+                Amount = amount,
                 CustomerId = customerId,
-                Channel = BN_CODE
+                Channel = BN_CODE,
+                MerchantAccountId = currencyMerchantId
             };
 
             //transaction credit card request
@@ -138,7 +168,7 @@ namespace Nop.Plugin.Payments.BrainTree
             var transactionOptionsRequest = new TransactionOptionsRequest
             {
                 SubmitForSettlement = true,
-                ThreeDSecure = new TransactionOptionsThreeDSecureRequest( )
+                ThreeDSecure = new TransactionOptionsThreeDSecureRequest()
             };
             transactionRequest.Options = transactionOptionsRequest;
 
@@ -333,19 +363,26 @@ namespace Nop.Plugin.Payments.BrainTree
             };
             _settingService.SaveSetting(settings);
 
+            //database objects
+            _objectContext.Install();
+            
             //locales
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox", "Use Sandbox");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint", "Check to enable Sandbox (testing environment).");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId", "Merchant ID");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint", "Enter Merchant ID");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey", "Public Key");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint", "Enter Public key");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey", "Private Key");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint", "Enter Private key");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee", "Additional fee");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Currency.Fields.CurrencyCode", "Currency code");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Currency.Fields.MerchantAccountId", "Merchant account");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee", "Additional fee");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint", "Enter Merchant ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId", "Merchant ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint", "Enter Private key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey", "Private Key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint", "Enter Public key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey", "Public Key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseMultiCurrency.Hint", "Check to enable multi currency support (MerchantAccount)");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseMultiCurrency", "Use multi currency");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint", "Check to enable Sandbox (testing environment).");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox", "Use Sandbox");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.PaymentMethodDescription", "Pay by credit / debit card");
 
             base.Install();
@@ -356,19 +393,26 @@ namespace Nop.Plugin.Payments.BrainTree
             //settings
             _settingService.DeleteSetting<BrainTreePaymentSettings>();
 
+            //database objects
+            _objectContext.Uninstall();
+
             //locales
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Currency.Fields.CurrencyCode");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Currency.Fields.MerchantAccountId");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFee");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.MerchantId");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseMultiCurrency.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseMultiCurrency");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.BrainTree.PaymentMethodDescription");
 
             base.Uninstall();
