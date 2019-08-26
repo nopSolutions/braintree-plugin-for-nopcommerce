@@ -74,6 +74,16 @@
                 </div>
                 <div class="form-group">
                     <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Use3DS_OverrideForStore" asp-input="Use3DS" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Use3DS" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="Use3DS" />
+                        <span asp-validation-for="Use3DS"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
                         <nop-override-store-checkbox asp-for="UseMultiCurrency_OverrideForStore" asp-input="UseMultiCurrency" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                         <nop-label asp-for="UseMultiCurrency" />
                     </div>

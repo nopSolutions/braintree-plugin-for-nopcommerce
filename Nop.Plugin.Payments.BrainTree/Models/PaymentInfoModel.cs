@@ -35,5 +35,9 @@ namespace Nop.Plugin.Payments.BrainTree.Models
 
         [NopResourceDisplayName("Payment.CardCode")]
         public string CardCode { get; set; }
+
+        public string Errors { get; set; }
+
+        public string CardNonce { get; set; }
     }
 }

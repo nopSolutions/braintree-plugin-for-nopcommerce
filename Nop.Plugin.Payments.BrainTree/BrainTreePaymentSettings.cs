@@ -23,5 +23,7 @@ namespace Nop.Plugin.Payments.BrainTree
         public bool AdditionalFeePercentage { get; set; }
 
         public bool UseMultiCurrency { get; set; }
+
+        public bool Use3DS { get; set; }
     }
 }

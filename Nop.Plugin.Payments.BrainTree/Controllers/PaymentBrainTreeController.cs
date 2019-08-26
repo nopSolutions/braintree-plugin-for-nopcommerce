@@ -34,8 +34,8 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
 
         public PaymentBrainTreeController(IBrainTreeService brainTreeService,
             ILocalizationService localizationService,
-        INotificationService notificationService,
-        IPermissionService permissionService,
+            INotificationService notificationService,
+            IPermissionService permissionService,
             ISettingService settingService,
             IStoreContext storeContext)
         {
@@ -69,7 +69,8 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
                 MerchantId = brainTreePaymentSettings.MerchantId,
                 AdditionalFee = brainTreePaymentSettings.AdditionalFee,
                 AdditionalFeePercentage = brainTreePaymentSettings.AdditionalFeePercentage,
-                UseMultiCurrency = brainTreePaymentSettings.UseMultiCurrency
+                UseMultiCurrency = brainTreePaymentSettings.UseMultiCurrency,
+                Use3DS = brainTreePaymentSettings.Use3DS
             };
 
             if (storeScope > 0)
@@ -81,6 +82,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
                 model.AdditionalFee_OverrideForStore = _settingService.SettingExists(brainTreePaymentSettings, x => x.AdditionalFee, storeScope);
                 model.AdditionalFeePercentage_OverrideForStore = _settingService.SettingExists(brainTreePaymentSettings, x => x.AdditionalFeePercentage, storeScope);
                 model.UseMultiCurrency_OverrideForStore = _settingService.SettingExists(brainTreePaymentSettings, x => x.UseMultiCurrency, storeScope);
+                model.Use3DS_OverrideForStore = _settingService.SettingExists(brainTreePaymentSettings, x => x.Use3DS, storeScope);
             }
 
             return View("~/Plugins/Payments.BrainTree/Views/Configure.cshtml", model);
@@ -107,6 +109,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             brainTreePaymentSettings.AdditionalFee = model.AdditionalFee;
             brainTreePaymentSettings.AdditionalFeePercentage = model.AdditionalFeePercentage;
             brainTreePaymentSettings.UseMultiCurrency = model.UseMultiCurrency;
+            brainTreePaymentSettings.Use3DS = model.Use3DS;
 
             /* We do not clear cache after each setting update.
              * This behavior can increase performance because cached settings will not be cleared 
@@ -118,6 +121,7 @@ namespace Nop.Plugin.Payments.BrainTree.Controllers
             _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.AdditionalFee, model.AdditionalFee_OverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.AdditionalFeePercentage, model.AdditionalFeePercentage_OverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.UseMultiCurrency, model.UseMultiCurrency_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(brainTreePaymentSettings, x => x.Use3DS, model.Use3DS_OverrideForStore, storeScope, false);
 
             //now clear settings cache
             _settingService.ClearCache();

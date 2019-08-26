@@ -34,5 +34,9 @@ namespace Nop.Plugin.Payments.BrainTree.Models
         [NopResourceDisplayName("Plugins.Payments.BrainTree.Fields.UseMultiCurrency")]
         public bool UseMultiCurrency { get; set; }
         public bool UseMultiCurrency_OverrideForStore { get; set; }
+
+        [NopResourceDisplayName("Plugins.Payments.BrainTree.Fields.Use3DS")]
+        public bool Use3DS { get; set; }
+        public bool Use3DS_OverrideForStore { get; set; }
     }
 }

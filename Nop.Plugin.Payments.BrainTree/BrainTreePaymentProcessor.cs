@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Braintree;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -132,14 +133,21 @@ namespace Nop.Plugin.Payments.BrainTree
                 MerchantAccountId = currencyMerchantId
             };
 
-            //transaction credit card request
-            var transactionCreditCardRequest = new TransactionCreditCardRequest
+            if (_brainTreePaymentSettings.Use3DS)
             {
-                Number = processPaymentRequest.CreditCardNumber,
-                CVV = processPaymentRequest.CreditCardCvv2,
-                ExpirationDate = processPaymentRequest.CreditCardExpireMonth + "/" + processPaymentRequest.CreditCardExpireYear,
-            };
-            transactionRequest.CreditCard = transactionCreditCardRequest;
+                transactionRequest.PaymentMethodNonce = processPaymentRequest.CustomValues["CardNonce"].ToString();
+            }
+            else
+            {
+                //transaction credit card request
+                var transactionCreditCardRequest = new TransactionCreditCardRequest
+                {
+                    Number = processPaymentRequest.CreditCardNumber,
+                    CVV = processPaymentRequest.CreditCardCvv2,
+                    ExpirationDate = processPaymentRequest.CreditCardExpireMonth + "/" + processPaymentRequest.CreditCardExpireYear,
+                };
+                transactionRequest.CreditCard = transactionCreditCardRequest;
+            }
 
             //customer request
             var customerRequest = new CustomerRequest
@@ -160,7 +168,9 @@ namespace Nop.Plugin.Payments.BrainTree
                 FirstName = customer.BillingAddress.FirstName,
                 LastName = customer.BillingAddress.LastName,
                 StreetAddress = customer.BillingAddress.Address1,
-                PostalCode = customer.BillingAddress.ZipPostalCode
+                PostalCode = customer.BillingAddress.ZipPostalCode,
+                CountryCodeAlpha2 = customer.BillingAddress.Country?.TwoLetterIsoCode,
+                CountryCodeAlpha3 = customer.BillingAddress.Country?.ThreeLetterIsoCode
             };
             transactionRequest.BillingAddress = addressRequest;
             
@@ -298,25 +308,35 @@ namespace Nop.Plugin.Payments.BrainTree
             return false;
         }
 
+        /// <summary>
+        /// Gets a configuration page URL
+        /// </summary>
         public override string GetConfigurationPageUrl()
         {
             return $"{_webHelper.GetStoreLocation()}Admin/PaymentBrainTree/Configure";
         }
 
+        /// <summary>
+        /// Validate payment form
+        /// </summary>
+        /// <param name="form">The parsed form values</param>
+        /// <returns>List of validating errors</returns>
         public IList<string> ValidatePaymentForm(IFormCollection form)
         {
             var warnings = new List<string>();
 
             //validate
-            var validator = new PaymentInfoValidator(_localizationService);
+            var validator = new PaymentInfoValidator(_brainTreePaymentSettings, _localizationService);
             var model = new PaymentInfoModel
             {
                 CardholderName = form["CardholderName"],
                 CardNumber = form["CardNumber"],
                 CardCode = form["CardCode"],
                 ExpireMonth = form["ExpireMonth"],
-                ExpireYear = form["ExpireYear"]
+                ExpireYear = form["ExpireYear"],
+                CardNonce = form["CardNonce"]
             };
+
             var validationResult = validator.Validate(model);
 
             if (validationResult.IsValid)
@@ -327,9 +347,14 @@ namespace Nop.Plugin.Payments.BrainTree
             return warnings;
         }
 
+        /// <summary>
+        /// Get payment information
+        /// </summary>
+        /// <param name="form">The parsed form values</param>
+        /// <returns>Payment info holder</returns>
         public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
-            var paymentInfo = new ProcessPaymentRequest
+            var paymentInfo = _brainTreePaymentSettings.Use3DS ? new ProcessPaymentRequest() : new ProcessPaymentRequest
             {
                 CreditCardName = form["CardholderName"],
                 CreditCardNumber = form["CardNumber"],
@@ -338,9 +363,16 @@ namespace Nop.Plugin.Payments.BrainTree
                 CreditCardCvv2 = form["CardCode"]
             };
 
+            if (form.TryGetValue("CardNonce", out var cardNonce) && !StringValues.IsNullOrEmpty(cardNonce))
+                paymentInfo.CustomValues.Add("CardNonce", cardNonce.ToString());
+
             return paymentInfo;
         }
 
+        /// <summary>
+        /// Gets a name of a view component for displaying plugin in public store ("payment info" checkout step)
+        /// </summary>
+        /// <returns>View component name</returns>
         public string GetPublicViewComponentName()
         {
             return "PaymentBrainTree";
@@ -379,6 +411,8 @@ namespace Nop.Plugin.Payments.BrainTree
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PrivateKey", "Private Key");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey.Hint", "Enter Public key");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.PublicKey", "Public Key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.Use3DS", "Use the 3D secure");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.Use3DS.Hint", "Check to enable the 3D secure integration");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseMultiCurrency.Hint", "Check to enable multi currency support (MerchantAccount)");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseMultiCurrency", "Use multi currency");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.BrainTree.Fields.UseSandbox.Hint", "Check to enable Sandbox (testing environment).");
