@@ -115,7 +115,9 @@ namespace Nop.Plugin.Payments.BrainTree
                 FirstName = customer.BillingAddress.FirstName,
                 LastName = customer.BillingAddress.LastName,
                 StreetAddress = customer.BillingAddress.Address1,
-                PostalCode = customer.BillingAddress.ZipPostalCode
+                PostalCode = customer.BillingAddress.ZipPostalCode,
+                CountryCodeAlpha2 = customer.BillingAddress.Country.TwoLetterIsoCode,
+                CountryCodeAlpha3 = customer.BillingAddress.Country.ThreeLetterIsoCode
             };
             transactionRequest.BillingAddress = addressRequest;
 
