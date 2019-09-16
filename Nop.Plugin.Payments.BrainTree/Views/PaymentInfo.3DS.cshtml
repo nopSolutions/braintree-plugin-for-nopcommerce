@@ -1,71 +1,15 @@
-﻿@{
+﻿@using Nop.Plugin.Payments.BrainTree
+@model Nop.Plugin.Payments.BrainTree.Models.PaymentInfoModel
+@inject Nop.Core.IWorkContext _workContext
+@inject Nop.Core.Domain.Orders.OrderSettings _orderSettings
+
+@{
     Layout = "";
     Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeScriptPath, excludeFromBundle: true);
     Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeClientScriptPath, excludeFromBundle: true);
     Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeHostedFieldsScriptPath, excludeFromBundle: true);
     Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.Braintree3DSecureScriptPath, excludeFromBundle: true);
 }
-
-@using Nop.Plugin.Payments.BrainTree
-@model Nop.Plugin.Payments.BrainTree.Models.PaymentInfoModel
-@inject Nop.Core.IWorkContext _workContext
-@inject Nop.Core.Domain.Orders.OrderSettings _orderSettings
-
-
-<style type="text/css">
-    .braintree-input {
-        height: 36px;
-        border: 1px solid #ddd;
-        padding: 8px;
-        vertical-align: middle;
-        color: #777;
-    }
-
-    .invalid-feedback {
-        display: none;
-        width: 100%;
-        margin-top: .25rem;
-        font-size: 80%;
-        color: #dc3545;
-    }
-</style>
-
-<input type="hidden" asp-for="Errors" />
-<div style="color:red; margin:0 auto" id="braintree-errors">
-
-</div>
-
-
-<table width="100%" cellspacing="2" cellpadding="1" border="0">
-    <tr>
-        <td>
-            <label>@T("Payment.CardNumber"):</label>
-        </td>
-        <td>
-            <div class="braintree-input" id="braintree-card-number" style="width:165px;"></div>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <label>@T("Payment.ExpirationDate"):</label>
-        </td>
-        <td>
-            <div class="braintree-input" id="braintree-expiration-date" style="width:65px;"></div>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <label>@T("Payment.CardCode"):</label>
-        </td>
-        <td>
-            <div class="braintree-input" id="cc-cvv" style="width:65px;"></div>
-            <input id="CardNonce" name="CardNonce" type="hidden" />
-        </td>
-    </tr>
-</table>
-
-<div id="braintree-authentication">
-</div>
 
 <script asp-location="Footer">
     $(document).ready(function () {
@@ -213,3 +157,60 @@
         });
     });
 </script>
+
+<style type="text/css">
+    .braintree-input {
+        height: 36px;
+        border: 1px solid #ddd;
+        padding: 8px;
+        vertical-align: middle;
+        color: #777;
+    }
+
+    .invalid-feedback {
+        display: none;
+        width: 100%;
+        margin-top: .25rem;
+        font-size: 80%;
+        color: #dc3545;
+    }
+</style>
+
+<input type="hidden" asp-for="Errors" />
+<div style="color:red; margin:0 auto" id="braintree-errors">
+
+</div>
+
+
+<table width="100%" cellspacing="2" cellpadding="1" border="0">
+    <tr>
+        <td>
+            <label>@T("Payment.CardNumber"):</label>
+        </td>
+        <td>
+            <div class="braintree-input" id="braintree-card-number" style="width:165px;"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label>@T("Payment.ExpirationDate"):</label>
+        </td>
+        <td>
+            <div class="braintree-input" id="braintree-expiration-date" style="width:65px;"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label>@T("Payment.CardCode"):</label>
+        </td>
+        <td>
+            <div class="braintree-input" id="cc-cvv" style="width:65px;"></div>
+            <input id="CardNonce" name="CardNonce" type="hidden" />
+        </td>
+    </tr>
+</table>
+
+<div id="braintree-authentication">
+</div>
+
+@Html.NopInlineScripts(ResourceLocation.Footer)
