@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Nop.Core.Domain.Directory;
+﻿using Nop.Core.Domain.Directory;
 using Nop.Core.Events;
 using Nop.Plugin.Payments.BrainTree.Services;
 using Nop.Services.Events;
@@ -56,7 +55,7 @@ namespace Nop.Plugin.Payments.BrainTree.Infrastructure.Cache
                 return;
 
             //add js script to one page checkout
-            if (eventMessage.GetRouteNames().Any(r => r.Equals("CheckoutOnePage")))
+            if (eventMessage.GetRouteName()?.Equals("CheckoutOnePage") ?? false)
             {
                 eventMessage.Helper.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeScriptPath, excludeFromBundle: true);
                 eventMessage.Helper.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeClientScriptPath, excludeFromBundle: true);

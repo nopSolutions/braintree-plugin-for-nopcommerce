@@ -1,6 +1,11 @@
 ﻿@using Nop.Plugin.Payments.BrainTree
+@using Nop.Services.Common
+@using Nop.Services.Directory
 @model Nop.Plugin.Payments.BrainTree.Models.PaymentInfoModel
 @inject Nop.Core.IWorkContext _workContext
+@inject IAddressService _addressService
+@inject IStateProvinceService _stateProvinceService
+@inject ICountryService _countryService
 @inject Nop.Core.Domain.Orders.OrderSettings _orderSettings
 
 @{
@@ -67,9 +72,9 @@
 
         function onComponent(name) {
             return function(err, component) {
-                if (err) 
+                if (err)
                     return;
-                
+
                 components[name] = component;
             }
         }
@@ -85,6 +90,12 @@
 
         function verifyCard(payload) {
 
+            @{
+                var address = _addressService.GetAddressById(_workContext.CurrentCustomer.BillingAddressId ?? 0);
+                var stateProvince = _stateProvinceService.GetStateProvinceByAddress(address);
+                var country = _countryService.GetCountryByAddress(address);
+            }
+
             components.threeDSecure.verifyCard({
                 bin : payload.details.bin,
                 amount: '@ViewBag.OrderTotal',
@@ -92,17 +103,17 @@
                 addFrame: addFrame,
                 removeFrame: removeFrame,
                 challengeRequested: true,
-                email: '@_workContext.CurrentCustomer.BillingAddress?.Email',
+                email: '@address?.Email',
                 billingAddress: {
-                    givenName: '@_workContext.CurrentCustomer.BillingAddress?.FirstName',
-                    surname: '@_workContext.CurrentCustomer.BillingAddress?.LastName',
-                    phoneNumber: '@_workContext.CurrentCustomer.BillingAddress?.PhoneNumber',
-                    streetAddress: '@_workContext.CurrentCustomer.BillingAddress?.Address1',
-                    extendedAddress: '@_workContext.CurrentCustomer.BillingAddress?.Address2',
-                    locality: '@_workContext.CurrentCustomer.BillingAddress?.City',
-                    region: '@_workContext.CurrentCustomer.BillingAddress?.StateProvince?.Abbreviation',
-                    postalCode: '@_workContext.CurrentCustomer.BillingAddress?.ZipPostalCode',
-                    countryCodeAlpha2: '@_workContext.CurrentCustomer.BillingAddress?.Country?.TwoLetterIsoCode',
+                    givenName: '@address?.FirstName',
+                    surname: '@address?.LastName',
+                    phoneNumber: '@address?.PhoneNumber',
+                    streetAddress: '@address?.Address1',
+                    extendedAddress: '@address?.Address2',
+                    locality: '@address?.City',
+                    region: '@stateProvince?.Abbreviation',
+                    postalCode: '@address?.ZipPostalCode',
+                    countryCodeAlpha2: '@country?.TwoLetterIsoCode'
                 },
                 onLookupComplete: function (data, next) {
                     // use `data` here, then call `next()`
@@ -137,7 +148,7 @@
 
                             $('#braintree-errors').html(err.message);
                             return;
-                        } 
+                        }
 
                         verifyCard(payload);
                     });

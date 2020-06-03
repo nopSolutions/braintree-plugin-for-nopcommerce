@@ -1,14 +1,8 @@
 using Autofac;
-using Autofac.Core;
 using Nop.Core.Configuration;
-using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 using Nop.Core.Infrastructure.DependencyManagement;
-using Nop.Data;
-using Nop.Plugin.Payments.BrainTree.Data;
-using Nop.Plugin.Payments.BrainTree.Domain;
 using Nop.Plugin.Payments.BrainTree.Services;
-using Nop.Web.Framework.Infrastructure.Extensions;
 
 namespace Nop.Plugin.Payments.BrainTree.Infrastructure
 {
@@ -26,14 +20,6 @@ namespace Nop.Plugin.Payments.BrainTree.Infrastructure
         public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             builder.RegisterType<BrainTreeService>().As<IBrainTreeService>().InstancePerLifetimeScope();
-
-            //data context
-            builder.RegisterPluginDataContext<BrainTreeObjectContext>("nop_object_context_brain_tree");
-
-            //override required repository with our custom context
-            builder.RegisterType<EfRepository<BrainTreeMerchantRecord>>().As<IRepository<BrainTreeMerchantRecord>>()
-                .WithParameter(ResolvedParameter.ForNamed<IDbContext>("nop_object_context_brain_tree"))
-                .InstancePerLifetimeScope();
         }
 
         /// <summary>

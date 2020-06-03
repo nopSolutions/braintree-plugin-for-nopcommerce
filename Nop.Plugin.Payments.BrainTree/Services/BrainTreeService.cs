@@ -1,12 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.ComponentModel;
-using Nop.Core.Data;
+using Nop.Data;
 using Nop.Plugin.Payments.BrainTree.Domain;
+using Nop.Services.Caching;
 using Nop.Services.Directory;
 
 namespace Nop.Plugin.Payments.BrainTree.Services
@@ -24,7 +24,7 @@ namespace Nop.Plugin.Payments.BrainTree.Services
         /// <remarks>
         /// {0} : store identifier
         /// </remarks>
-        private const string BRAINTREESERVICE_EXISTS_CURRENCY_KEY = "Nop.braintree.existscurrencycodes-{0}";
+        private CacheKey BRAINTREESERVICE_EXISTS_CURRENCY_KEY = new CacheKey("Nop.braintree.existscurrencycodes-{0}", BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX);
 
         private const string BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX = "Nop.braintree.existscurrencycodes";
 
@@ -35,7 +35,7 @@ namespace Nop.Plugin.Payments.BrainTree.Services
         /// {0} : currency code
         /// {1} : store identifier
         /// </remarks>
-        private const string BRAINTREESERVICE_MERCHANT_KEY = "Nop.braintree.merchant-{0}-{1}";
+        private CacheKey BRAINTREESERVICE_MERCHANT_KEY = new CacheKey("Nop.braintree.merchant-{0}-{1}", BRAINTREESERVICE_MERCHANT_PREFIX);
 
         private const string BRAINTREESERVICE_MERCHANT_PREFIX = "Nop.braintree.merchant-{0}";
 
@@ -43,9 +43,10 @@ namespace Nop.Plugin.Payments.BrainTree.Services
 
         #region Fields
 
-        private readonly ICacheManager _cacheManager;
-        private readonly IRepository<BrainTreeMerchantRecord> _btmrRepository;
+        private readonly ICacheKeyService _cacheKeyService;
         private readonly ICurrencyService _currencyService;
+        private readonly IRepository<BrainTreeMerchantRecord> _btmrRepository;
+        private readonly IStaticCacheManager _staticCacheManager;
         private readonly IStoreContext _storeContext;
         private static readonly ReaderWriterLockSlim _locker = new ReaderWriterLockSlim();
 
@@ -53,15 +54,17 @@ namespace Nop.Plugin.Payments.BrainTree.Services
 
         #region Ctor
 
-        public BrainTreeService(IRepository<BrainTreeMerchantRecord> btmrRepository,
-            ICacheManager cacheManager,
+        public BrainTreeService(ICacheKeyService cacheKeyService,
             ICurrencyService currencyService,
-            IStoreContext storeContext)
+            IStaticCacheManager staticCacheManager,
+            IStoreContext storeContext,
+            IRepository<BrainTreeMerchantRecord> btmrRepository)
         {
-            _btmrRepository = btmrRepository;
-            _cacheManager = cacheManager;
+            _cacheKeyService = cacheKeyService;
             _currencyService = currencyService;
+            _staticCacheManager = staticCacheManager;
             _storeContext = storeContext;
+            _btmrRepository = btmrRepository;
         }
 
         #endregion
@@ -70,8 +73,8 @@ namespace Nop.Plugin.Payments.BrainTree.Services
 
         private List<BrainTreeMerchantRecord> GetMerchantsByStoreId(int storeId)
         {
-            return _cacheManager.Get(
-                string.Format(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId),
+            return _staticCacheManager.Get(
+                _cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId),
                 () => { return _btmrRepository.Table.Where(record => record.StoreId == storeId).ToList(); });
         }
 
@@ -93,10 +96,10 @@ namespace Nop.Plugin.Payments.BrainTree.Services
                         StoreId = storeId
                     });
 
-                    _cacheManager.RemoveByPrefix(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currency.CurrencyCode));
+                    _staticCacheManager.RemoveByPrefix(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currency.CurrencyCode));
                 }
 
-                _cacheManager.Remove(string.Format(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId));
+                _staticCacheManager.Remove(_cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId));
             }
         }
 
@@ -120,8 +123,8 @@ namespace Nop.Plugin.Payments.BrainTree.Services
                 _btmrRepository.Delete(merchant);
             }
 
-            _cacheManager.RemoveByPrefix(BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX);
-            _cacheManager.RemoveByPrefix(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currencyCode));
+            _staticCacheManager.RemoveByPrefix(BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX);
+            _staticCacheManager.RemoveByPrefix(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currencyCode));
         }
 
         /// <summary>
@@ -154,7 +157,7 @@ namespace Nop.Plugin.Payments.BrainTree.Services
             merchant.MerchantAccountId = merchantAccountId;
 
             _btmrRepository.Update(merchant);
-            _cacheManager.Remove(string.Format(BRAINTREESERVICE_MERCHANT_KEY, merchant.CurrencyCode, merchant.StoreId));
+            _staticCacheManager.Remove(_cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_MERCHANT_KEY, merchant.CurrencyCode, merchant.StoreId));
         }
 
         /// <summary>
@@ -164,8 +167,8 @@ namespace Nop.Plugin.Payments.BrainTree.Services
         /// <returns>Merchant identifier</returns>
         public string GetMerchantId(string currencyCode)
         {
-            var merchant = _cacheManager.Get(
-                string.Format(BRAINTREESERVICE_MERCHANT_KEY, currencyCode, _storeContext.CurrentStore.Id), () =>
+            var merchant = _staticCacheManager.Get(
+                _cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_MERCHANT_KEY, currencyCode, _storeContext.CurrentStore.Id), () =>
                 {
                     var rez = _btmrRepository.Table.FirstOrDefault(record =>
                         record.CurrencyCode == currencyCode && record.StoreId == _storeContext.CurrentStore.Id);

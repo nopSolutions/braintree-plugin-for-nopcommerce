@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <Copyright>Copyright © Nop Solutions, Ltd</Copyright> 
     <Company>Nop Solutions, Ltd</Company> 
     <Authors>Nop Solutions, Ltd</Authors> 
     <PackageLicenseUrl></PackageLicenseUrl> 
-    <PackageProjectUrl>http://www.nopcommerce.com/p/1102/braintree-payment-module.aspx</PackageProjectUrl> 
-    <RepositoryUrl>https://github.com/nopSolutions/braintree-plugin-for-nopcommerce</RepositoryUrl> 
+    <PackageProjectUrl>https://www.nopcommerce.com/braintree-payment-module</PackageProjectUrl> 
+    <RepositoryUrl>https://www.nopcommerce.com/braintree-payment-module</RepositoryUrl> 
     <RepositoryType>Git</RepositoryType>
     <OutputPath>..\..\Presentation\Nop.Web\Plugins\Payments.BrainTree</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
