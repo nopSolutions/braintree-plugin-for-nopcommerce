@@ -7,10 +7,9 @@ using Microsoft.Extensions.Primitives;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
-using Nop.Plugin.Payments.BrainTree.Controllers;
-using Nop.Plugin.Payments.BrainTree.Models;
-using Nop.Plugin.Payments.BrainTree.Services;
-using Nop.Plugin.Payments.BrainTree.Validators;
+using Nop.Plugin.Payments.Braintree.Models;
+using Nop.Plugin.Payments.Braintree.Services;
+using Nop.Plugin.Payments.Braintree.Validators;
 using Nop.Services.Common;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
@@ -20,24 +19,18 @@ using Nop.Services.Payments;
 using Nop.Services.Plugins;
 using Environment = Braintree.Environment;
 
-namespace Nop.Plugin.Payments.BrainTree
+namespace Nop.Plugin.Payments.Braintree
 {
-    public class BrainTreePaymentProcessor : BasePlugin, IPaymentMethod
+    /// <summary>
+    /// Represents a payment method implementation
+    /// </summary>
+    public class BraintreePaymentProcessor : BasePlugin, IPaymentMethod
     {
-        #region Constants
-
-        /// <summary>
-        /// nopCommerce partner code
-        /// </summary>
-        private const string BN_CODE = "nopCommerceCart";
-
-        #endregion
-
         #region Fields
 
-        private readonly BrainTreePaymentSettings _brainTreePaymentSettings;
+        private readonly BraintreeMerchantService _braintreeMerchantService;
+        private readonly BraintreePaymentSettings _braintreePaymentSettings;
         private readonly IAddressService _addressService;
-        private readonly IBrainTreeService _brainTreeService;
         private readonly ICountryService _countryService;
         private readonly ICurrencyService _currencyService;
         private readonly ICustomerService _customerService;
@@ -51,9 +44,9 @@ namespace Nop.Plugin.Payments.BrainTree
 
         #region Ctor
 
-        public BrainTreePaymentProcessor(BrainTreePaymentSettings brainTreePaymentSettings,
+        public BraintreePaymentProcessor(BraintreeMerchantService braintreeMerchantService,
+            BraintreePaymentSettings braintreePaymentSettings,
             IAddressService addressService,
-            IBrainTreeService brainTreeService,
             ICountryService countryService,
             ICurrencyService currencyService,
             ICustomerService customerService,
@@ -63,9 +56,9 @@ namespace Nop.Plugin.Payments.BrainTree
             IWebHelper webHelper,
             IWorkContext workContext)
         {
-            _brainTreePaymentSettings = brainTreePaymentSettings;
+            _braintreeMerchantService = braintreeMerchantService;
+            _braintreePaymentSettings = braintreePaymentSettings;
             _addressService = addressService;
-            _brainTreeService = brainTreeService;
             _countryService = countryService;
             _currencyService = currencyService;
             _customerService = customerService;
@@ -93,15 +86,15 @@ namespace Nop.Plugin.Payments.BrainTree
             var customer = _customerService.GetCustomerById(processPaymentRequest.CustomerId);
 
             //get settings
-            var useSandBox = _brainTreePaymentSettings.UseSandBox;
-            var merchantId = _brainTreePaymentSettings.MerchantId;
-            var publicKey = _brainTreePaymentSettings.PublicKey;
-            var privateKey = _brainTreePaymentSettings.PrivateKey;
+            var useSandbox = _braintreePaymentSettings.UseSandbox;
+            var merchantId = _braintreePaymentSettings.MerchantId;
+            var publicKey = _braintreePaymentSettings.PublicKey;
+            var privateKey = _braintreePaymentSettings.PrivateKey;
 
             //new gateway
             var gateway = new BraintreeGateway
             {
-                Environment = useSandBox ? Environment.SANDBOX : Environment.PRODUCTION,
+                Environment = useSandbox ? Environment.SANDBOX : Environment.PRODUCTION,
                 MerchantId = merchantId,
                 PublicKey = publicKey,
                 PrivateKey = privateKey
@@ -118,12 +111,12 @@ namespace Nop.Plugin.Payments.BrainTree
             var currencyMerchantId = string.Empty;
             var amount = processPaymentRequest.OrderTotal;
 
-            if (_brainTreePaymentSettings.UseMultiCurrency)
+            if (_braintreePaymentSettings.UseMultiCurrency)
             {
                 //get currency
                 var currency = _workContext.WorkingCurrency;
 
-                currencyMerchantId = _brainTreeService.GetMerchantId(currency.CurrencyCode);
+                currencyMerchantId = _braintreeMerchantService.GetMerchantId(currency.CurrencyCode);
 
                 if (!string.IsNullOrEmpty(currencyMerchantId))
                     amount = _currencyService.ConvertCurrency(amount, currency.Rate);
@@ -134,11 +127,11 @@ namespace Nop.Plugin.Payments.BrainTree
             {
                 Amount = amount,
                 CustomerId = customerId,
-                Channel = BN_CODE,
+                Channel = BraintreePaymentDefaults.PartnerCode,
                 MerchantAccountId = currencyMerchantId
             };
 
-            if (_brainTreePaymentSettings.Use3DS)
+            if (_braintreePaymentSettings.Use3DS)
             {
                 transactionRequest.PaymentMethodNonce = processPaymentRequest.CustomValues["CardNonce"].ToString();
             }
@@ -180,7 +173,7 @@ namespace Nop.Plugin.Payments.BrainTree
                 CountryCodeAlpha3 = country?.ThreeLetterIsoCode
             };
             transactionRequest.BillingAddress = addressRequest;
-            
+
             //transaction options request
             var transactionOptionsRequest = new TransactionOptionsRequest
             {
@@ -231,7 +224,7 @@ namespace Nop.Plugin.Payments.BrainTree
         public decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
             var result = _paymentService.CalculateAdditionalFee(cart,
-                _brainTreePaymentSettings.AdditionalFee, _brainTreePaymentSettings.AdditionalFeePercentage);
+                _braintreePaymentSettings.AdditionalFee, _braintreePaymentSettings.AdditionalFeePercentage);
 
             return result;
         }
@@ -308,19 +301,7 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <returns>Result</returns>
         public bool CanRePostProcessPayment(Order order)
         {
-            if (order == null)
-                throw new ArgumentNullException(nameof(order));
-
-            //it's not a redirection payment method. So we always return false
             return false;
-        }
-
-        /// <summary>
-        /// Gets a configuration page URL
-        /// </summary>
-        public override string GetConfigurationPageUrl()
-        {
-            return $"{_webHelper.GetStoreLocation()}Admin/PaymentBrainTree/Configure";
         }
 
         /// <summary>
@@ -330,10 +311,13 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <returns>List of validating errors</returns>
         public IList<string> ValidatePaymentForm(IFormCollection form)
         {
+            if (form == null)
+                throw new ArgumentNullException(nameof(form));
+
             var warnings = new List<string>();
 
             //validate
-            var validator = new PaymentInfoValidator(_brainTreePaymentSettings, _localizationService);
+            var validator = new PaymentInfoValidator(_braintreePaymentSettings, _localizationService);
             var model = new PaymentInfoModel
             {
                 CardholderName = form["CardholderName"],
@@ -361,7 +345,10 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <returns>Payment info holder</returns>
         public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
-            var paymentInfo = _brainTreePaymentSettings.Use3DS ? new ProcessPaymentRequest() : new ProcessPaymentRequest
+            if (form == null)
+                throw new ArgumentNullException(nameof(form));
+
+            var paymentInfo = _braintreePaymentSettings.Use3DS ? new ProcessPaymentRequest() : new ProcessPaymentRequest
             {
                 CreditCardName = form["CardholderName"],
                 CreditCardNumber = form["CardNumber"],
@@ -377,66 +364,74 @@ namespace Nop.Plugin.Payments.BrainTree
         }
 
         /// <summary>
-        /// Gets a name of a view component for displaying plugin in public store ("payment info" checkout step)
+        /// Gets a configuration page URL
         /// </summary>
-        /// <returns>View component name</returns>
+        public override string GetConfigurationPageUrl()
+        {
+            return $"{_webHelper.GetStoreLocation()}Admin/Braintree/Configure";
+        }
+
+        /// <summary>
+        /// Gets a view component for displaying plugin in public store ("payment info" checkout step)
+        /// </summary>
+        /// <param name="viewComponentName">View component name</param>
         public string GetPublicViewComponentName()
         {
-            return "PaymentBrainTree";
+            return BraintreePaymentDefaults.PAYMENT_INFO_VIEW_COMPONENT;
         }
 
-        public Type GetControllerType()
-        {
-            return typeof(PaymentBrainTreeController);
-        }
-
+        /// <summary>
+        /// Install the plugin
+        /// </summary>
         public override void Install()
         {
             //settings
-            var settings = new BrainTreePaymentSettings
+            _settingService.SaveSetting(new BraintreePaymentSettings
             {
-                UseSandBox = true,
-                MerchantId = string.Empty,
-                PrivateKey = string.Empty,
-                PublicKey = string.Empty
-            };
-            _settingService.SaveSetting(settings);
+                UseSandbox = true
+            });
 
             //locales
             _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
             {
-                ["Plugins.Payments.BrainTree.Currency.Fields.CurrencyCode"] = "Currency code",
-                ["Plugins.Payments.BrainTree.Currency.Fields.MerchantAccountId"] = "Merchant account",
-                ["Plugins.Payments.BrainTree.Fields.AdditionalFee.Hint"] = "Enter additional fee to charge your customers.",
-                ["Plugins.Payments.BrainTree.Fields.AdditionalFee"] = "Additional fee",
-                ["Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage.Hint"] = "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.",
-                ["Plugins.Payments.BrainTree.Fields.AdditionalFeePercentage"] = "Additional fee. Use percentage",
-                ["Plugins.Payments.BrainTree.Fields.MerchantId.Hint"] = "Enter Merchant ID",
-                ["Plugins.Payments.BrainTree.Fields.MerchantId"] = "Merchant ID",
-                ["Plugins.Payments.BrainTree.Fields.PrivateKey.Hint"] = "Enter Private key",
-                ["Plugins.Payments.BrainTree.Fields.PrivateKey"] = "Private Key",
-                ["Plugins.Payments.BrainTree.Fields.PublicKey.Hint"] = "Enter Public key",
-                ["Plugins.Payments.BrainTree.Fields.PublicKey"] = "Public Key",
-                ["Plugins.Payments.BrainTree.Fields.Use3DS"] = "Use the 3D secure",
-                ["Plugins.Payments.BrainTree.Fields.Use3DS.Hint"] = "Check to enable the 3D secure integration",
-                ["Plugins.Payments.BrainTree.Fields.UseMultiCurrency.Hint"] = "Check to enable multi currency support (MerchantAccount)",
-                ["Plugins.Payments.BrainTree.Fields.UseMultiCurrency"] = "Use multi currency",
-                ["Plugins.Payments.BrainTree.Fields.UseSandbox.Hint"] = "Check to enable Sandbox (testing environment).",
-                ["Plugins.Payments.BrainTree.Fields.UseSandbox"] = "Use Sandbox",
-                ["Plugins.Payments.BrainTree.PaymentMethodDescription"] = "Pay by credit / debit card"
+                ["Plugins.Payments.Braintree.Currency.Fields.CurrencyCode"] = "Currency code",
+                ["Plugins.Payments.Braintree.Currency.Fields.MerchantAccountId"] = "Merchant account",
+                ["Plugins.Payments.Braintree.Fields.AdditionalFee.Hint"] = "Enter additional fee to charge your customers.",
+                ["Plugins.Payments.Braintree.Fields.AdditionalFee"] = "Additional fee",
+                ["Plugins.Payments.Braintree.Fields.AdditionalFeePercentage.Hint"] = "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.",
+                ["Plugins.Payments.Braintree.Fields.AdditionalFeePercentage"] = "Additional fee. Use percentage",
+                ["Plugins.Payments.Braintree.Fields.MerchantId.Hint"] = "Enter Merchant ID",
+                ["Plugins.Payments.Braintree.Fields.MerchantId.Required"] = "Merchant ID is required",
+                ["Plugins.Payments.Braintree.Fields.MerchantId"] = "Merchant ID",
+                ["Plugins.Payments.Braintree.Fields.PrivateKey.Hint"] = "Enter Private key",
+                ["Plugins.Payments.Braintree.Fields.PrivateKey.Required"] = "Private key is required",
+                ["Plugins.Payments.Braintree.Fields.PrivateKey"] = "Private Key",
+                ["Plugins.Payments.Braintree.Fields.PublicKey.Hint"] = "Enter Public key",
+                ["Plugins.Payments.Braintree.Fields.PublicKey.Required"] = "Public key is required",
+                ["Plugins.Payments.Braintree.Fields.PublicKey"] = "Public Key",
+                ["Plugins.Payments.Braintree.Fields.Use3DS"] = "Use the 3D secure",
+                ["Plugins.Payments.Braintree.Fields.Use3DS.Hint"] = "Check to enable the 3D secure integration",
+                ["Plugins.Payments.Braintree.Fields.UseMultiCurrency.Hint"] = "Check to enable multi currency support (MerchantAccount)",
+                ["Plugins.Payments.Braintree.Fields.UseMultiCurrency"] = "Use multi currency",
+                ["Plugins.Payments.Braintree.Fields.UseSandbox.Hint"] = "Check to enable Sandbox (testing environment).",
+                ["Plugins.Payments.Braintree.Fields.UseSandbox"] = "Use Sandbox",
+                ["Plugins.Payments.Braintree.PaymentMethodDescription"] = "Pay by credit / debit card"
             });
-            
+
             base.Install();
         }
 
+        /// <summary>
+        /// Uninstall the plugin
+        /// </summary>
         public override void Uninstall()
         {
             //settings
-            _settingService.DeleteSetting<BrainTreePaymentSettings>();
+            _settingService.DeleteSetting<BraintreePaymentSettings>();
 
             //locales
-            _localizationService.DeletePluginLocaleResources("Plugins.Payments.BrainTree");
-            
+            _localizationService.DeletePluginLocaleResources("Plugins.Payments.Braintree");
+
             base.Uninstall();
         }
 
@@ -482,7 +477,7 @@ namespace Nop.Plugin.Payments.BrainTree
         /// <summary>
         /// Gets a payment method description that will be displayed on checkout pages in the public store
         /// </summary>
-        public string PaymentMethodDescription => _localizationService.GetResource("Plugins.Payments.BrainTree.PaymentMethodDescription");
+        public string PaymentMethodDescription => _localizationService.GetResource("Plugins.Payments.Braintree.PaymentMethodDescription");
 
         #endregion
     }

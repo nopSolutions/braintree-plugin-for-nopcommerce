@@ -1,13 +1,13 @@
-using Autofac;
+﻿using Autofac;
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure;
 using Nop.Core.Infrastructure.DependencyManagement;
-using Nop.Plugin.Payments.BrainTree.Services;
+using Nop.Plugin.Payments.Braintree.Services;
 
-namespace Nop.Plugin.Payments.BrainTree.Infrastructure
+namespace Nop.Plugin.Payments.Braintree.Infrastructure
 {
     /// <summary>
-    /// Dependency registrar
+    /// Represents a plugin dependency registrar
     /// </summary>
     public class DependencyRegistrar : IDependencyRegistrar
     {
@@ -19,7 +19,7 @@ namespace Nop.Plugin.Payments.BrainTree.Infrastructure
         /// <param name="config">Config</param>
         public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
-            builder.RegisterType<BrainTreeService>().As<IBrainTreeService>().InstancePerLifetimeScope();
+            builder.RegisterType<BraintreeMerchantService>().AsSelf().InstancePerLifetimeScope();
         }
 
         /// <summary>

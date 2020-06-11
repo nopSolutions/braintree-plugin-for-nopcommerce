@@ -1,11 +1,11 @@
-using Nop.Core;
+﻿using Nop.Core;
 
-namespace Nop.Plugin.Payments.BrainTree.Domain
+namespace Nop.Plugin.Payments.Braintree.Domain
 {
     /// <summary>
-    /// Represents a shipping by weight record
+    /// Represents a merchant record
     /// </summary>
-    public partial class BrainTreeMerchantRecord : BaseEntity
+    public class BraintreeMerchantRecord : BaseEntity
     {
         /// <summary>
         /// Gets or sets the store identifier

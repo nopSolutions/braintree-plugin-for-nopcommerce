@@ -1,11 +1,11 @@
 ﻿{
   "Group": "Payment methods",
-  "FriendlyName": "Credit Card",
-  "SystemName": "Payments.BrainTree",
-  "Version": "1.45",
+  "FriendlyName": "Braintree",
+  "SystemName": "Payments.Braintree",
+  "Version": "1.46",
   "SupportedVersions": [ "4.30" ],
   "Author": "nopCommerce team",
   "DisplayOrder": 1,
-  "FileName": "Nop.Plugin.Payments.BrainTree.dll",
-  "Description": "This plugin allows paying with Credit Card"
+  "FileName": "Nop.Plugin.Payments.Braintree.dll",
+  "Description": "This plugin allows paying with Braintree - the global commerce tool people need to build businesses, accept payments, and enable commerce for their users"
 }

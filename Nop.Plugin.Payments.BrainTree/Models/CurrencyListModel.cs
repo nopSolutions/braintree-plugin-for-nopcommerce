@@ -1,11 +1,11 @@
 ﻿using Nop.Web.Framework.Models;
 
-namespace Nop.Plugin.Payments.BrainTree.Models
+namespace Nop.Plugin.Payments.Braintree.Models
 {
     /// <summary>
-    /// Represents a currency list model
+    /// Represents a merchant currency list model
     /// </summary>
-    public partial class CurrencyListModel : BasePagedListModel<CurrencyModel>
+    public class CurrencyListModel : BasePagedListModel<CurrencyModel>
     {
     }
 }

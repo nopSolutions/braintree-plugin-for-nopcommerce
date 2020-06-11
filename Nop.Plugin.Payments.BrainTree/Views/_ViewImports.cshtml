@@ -1,8 +1,35 @@
 ﻿@inherits Nop.Web.Framework.Mvc.Razor.NopRazorPage<TModel>
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@removeTagHelper Microsoft.AspNetCore.Mvc.TagHelpers.InputTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Nop.Web.Framework
+@addTagHelper *, MiniProfiler.AspNetCore.Mvc
 
-@using Microsoft.AspNetCore.Mvc.ViewFeatures
-@using Nop.Web.Framework.UI
-@using Nop.Web.Framework.Extensions
+@inject IAddressService addressService
+@inject ICountryService countryService
+@inject IStateProvinceService stateProvinceService
+@inject IWorkContext workContext
+@inject OrderSettings orderSettings
+
+@using System.Globalization 
 @using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@using Microsoft.AspNetCore.Routing
+@using Nop.Core
+@using Nop.Core.Domain.Common
+@using Nop.Core.Domain.Orders
+@using Nop.Core.Infrastructure
+@using Nop.Plugin.Payments.Braintree
+@using Nop.Plugin.Payments.Braintree.Models
+@using Nop.Services.Common
+@using Nop.Services.Directory
+@using Nop.Services.Events
+@using Nop.Web.Framework
+@using Nop.Web.Framework.Events
+@using Nop.Web.Framework.Extensions
+@using Nop.Web.Framework.Infrastructure
+@using Nop.Web.Framework.Models
+@using Nop.Web.Framework.Models.DataTables
+@using Nop.Web.Framework.Security.Captcha
+@using Nop.Web.Framework.Security.Honeypot
+@using Nop.Web.Framework.Themes
+@using Nop.Web.Framework.UI

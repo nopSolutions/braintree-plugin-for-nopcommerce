@@ -1,19 +1,23 @@
-using FluentMigrator.Builders.Create.Table;
+﻿using FluentMigrator.Builders.Create.Table;
 using Nop.Data.Mapping.Builders;
-using Nop.Plugin.Payments.BrainTree.Domain;
+using Nop.Plugin.Payments.Braintree.Domain;
 
-namespace Nop.Plugin.Payments.BrainTree.Data
+namespace Nop.Plugin.Payments.Braintree.Data
 {
     /// <summary>
-    /// Represents a shipping by weight or by total record mapping configuration
+    /// Represents a merchant record mapping configuration
     /// </summary>
-    public partial class BrainTreeMerchantRecordBuilder : NopEntityBuilder<BrainTreeMerchantRecord>
+    public class BraintreeMerchantRecordBuilder : NopEntityBuilder<BraintreeMerchantRecord>
     {
         #region Methods
 
+        /// <summary>
+        /// Apply entity configuration
+        /// </summary>
+        /// <param name="table">Create table expression builder</param>
         public override void MapEntity(CreateTableExpressionBuilder table)
         {
-            table.WithColumn(nameof(BrainTreeMerchantRecord.CurrencyCode)).AsString(5).NotNullable();
+            table.WithColumn(nameof(BraintreeMerchantRecord.CurrencyCode)).AsString(5).NotNullable();
         }
 
         #endregion

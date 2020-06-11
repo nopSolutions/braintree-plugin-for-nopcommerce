@@ -1,25 +1,23 @@
-﻿@{
+﻿@model ConfigurationModel
+
+@{
     Layout = "_ConfigurePlugin";
 }
 
-@model ConfigurationModel
-@using Nop.Plugin.Payments.BrainTree.Models;
-@using Nop.Web.Framework.Models.DataTables
-
 @await Component.InvokeAsync("StoreScopeConfiguration")
 
-<form asp-controller="PaymentBrainTree" asp-action="Configure" method="post">
+<form asp-controller="Braintree" asp-action="Configure" method="post">
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-body">
                 <div class="form-group">
                     <div class="col-md-3">
-                        <nop-override-store-checkbox asp-for="UseSandbox_OverrideForStore" asp-input="UseSandBox" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="UseSandBox" />
+                        <nop-override-store-checkbox asp-for="UseSandbox_OverrideForStore" asp-input="UseSandbox" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="UseSandbox" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="UseSandBox" />
-                        <span asp-validation-for="UseSandBox"></span>
+                        <nop-editor asp-for="UseSandbox" />
+                        <span asp-validation-for="UseSandbox"></span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -28,7 +26,7 @@
                         <nop-label asp-for="MerchantId" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="MerchantId" />
+                        <nop-editor asp-for="MerchantId" asp-required="true" />
                         <span asp-validation-for="MerchantId"></span>
                     </div>
                 </div>
@@ -38,7 +36,7 @@
                         <nop-label asp-for="PrivateKey" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="PrivateKey" />
+                        <nop-editor asp-for="PrivateKey" asp-required="true" asp-value="@Model.PrivateKey" />
                         <span asp-validation-for="PrivateKey"></span>
                     </div>
                 </div>
@@ -48,7 +46,7 @@
                         <nop-label asp-for="PublicKey" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="PublicKey" />
+                        <nop-editor asp-for="PublicKey" asp-required="true" />
                         <span asp-validation-for="PublicKey"></span>
                     </div>
                 </div>
@@ -98,8 +96,8 @@
                             @await Html.PartialAsync("Table", new DataTablesModel
                             {
                                 Name = "brain-tree-grid",
-                                UrlRead = new DataUrl("GetCurrencies", "PaymentBrainTree", null),
-                                UrlUpdate = new DataUrl("UpdateCurrency", "PaymentBrainTree", null),
+                                UrlRead = new DataUrl("GetCurrencies", "Braintree", null),
+                                UrlUpdate = new DataUrl("UpdateCurrency", "Braintree", null),
                                 SearchButtonId = "search-settings",
                                 Length = Model.PageSize,
                                 LengthMenu = Model.AvailablePageSizes,
@@ -107,13 +105,13 @@
                                 {
                                     new ColumnProperty(nameof(CurrencyModel.CurrencyCode))
                                     {
-                                        Title = T("Plugins.Payments.BrainTree.Currency.Fields.CurrencyCode").Text,
+                                        Title = T("Plugins.Payments.Braintree.Currency.Fields.CurrencyCode").Text,
                                         Width = "300",
                                         EditType = EditType.String
                                     },
                                     new ColumnProperty(nameof(CurrencyModel.MerchantAccountId))
                                     {
-                                        Title = T("Plugins.Payments.BrainTree.Currency.Fields.MerchantAccountId").Text,
+                                        Title = T("Plugins.Payments.Braintree.Currency.Fields.MerchantAccountId").Text,
                                         Width = "300",
                                         Editable = true,
                                         EditType = EditType.String

@@ -1,20 +1,20 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.ComponentModel;
 using Nop.Data;
-using Nop.Plugin.Payments.BrainTree.Domain;
+using Nop.Plugin.Payments.Braintree.Domain;
 using Nop.Services.Caching;
 using Nop.Services.Directory;
 
-namespace Nop.Plugin.Payments.BrainTree.Services
+namespace Nop.Plugin.Payments.Braintree.Services
 {
     /// <summary>
-    /// Represents service shipping by weight service implementation
+    /// Represents merchant service
     /// </summary>
-    public partial class BrainTreeService : IBrainTreeService
+    public class BraintreeMerchantService
     {
         #region Constants
 
@@ -45,33 +45,34 @@ namespace Nop.Plugin.Payments.BrainTree.Services
 
         private readonly ICacheKeyService _cacheKeyService;
         private readonly ICurrencyService _currencyService;
-        private readonly IRepository<BrainTreeMerchantRecord> _btmrRepository;
+        private readonly IRepository<BraintreeMerchantRecord> _btmrRepository;
         private readonly IStaticCacheManager _staticCacheManager;
         private readonly IStoreContext _storeContext;
+
         private static readonly ReaderWriterLockSlim _locker = new ReaderWriterLockSlim();
 
         #endregion
 
         #region Ctor
 
-        public BrainTreeService(ICacheKeyService cacheKeyService,
+        public BraintreeMerchantService(ICacheKeyService cacheKeyService,
             ICurrencyService currencyService,
+            IRepository<BraintreeMerchantRecord> btmrRepository,
             IStaticCacheManager staticCacheManager,
-            IStoreContext storeContext,
-            IRepository<BrainTreeMerchantRecord> btmrRepository)
+            IStoreContext storeContext)
         {
             _cacheKeyService = cacheKeyService;
             _currencyService = currencyService;
+            _btmrRepository = btmrRepository;
             _staticCacheManager = staticCacheManager;
             _storeContext = storeContext;
-            _btmrRepository = btmrRepository;
         }
 
         #endregion
 
         #region Utilities
 
-        private List<BrainTreeMerchantRecord> GetMerchantsByStoreId(int storeId)
+        private List<BraintreeMerchantRecord> GetMerchantsByStoreId(int storeId)
         {
             return _staticCacheManager.Get(
                 _cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId),
@@ -89,7 +90,7 @@ namespace Nop.Plugin.Payments.BrainTree.Services
                     if (_btmrRepository.Table.Any(record => record.StoreId == storeId && record.CurrencyCode == currency.CurrencyCode))
                         continue;
 
-                    _btmrRepository.Insert(new BrainTreeMerchantRecord
+                    _btmrRepository.Insert(new BraintreeMerchantRecord
                     {
                         CurrencyCode = currency.CurrencyCode,
                         MerchantAccountId = string.Empty,
@@ -134,12 +135,12 @@ namespace Nop.Plugin.Payments.BrainTree.Services
         /// <param name="pageIndex">Page index</param>
         /// <param name="pageSize">Page size</param>
         /// <returns>Merchant records</returns>
-        public IPagedList<BrainTreeMerchantRecord> GetMerchants(int storeId, int pageIndex = 0,
+        public IPagedList<BraintreeMerchantRecord> GetMerchants(int storeId, int pageIndex = 0,
             int pageSize = int.MaxValue)
         {
             UpdateTable(storeId);
 
-            return new PagedList<BrainTreeMerchantRecord>(GetMerchantsByStoreId(storeId), pageIndex, pageSize);
+            return new PagedList<BraintreeMerchantRecord>(GetMerchantsByStoreId(storeId), pageIndex, pageSize);
         }
 
         /// <summary>

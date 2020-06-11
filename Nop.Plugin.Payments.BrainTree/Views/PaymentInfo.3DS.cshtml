@@ -1,29 +1,21 @@
-﻿@using Nop.Plugin.Payments.BrainTree
-@using Nop.Services.Common
-@using Nop.Services.Directory
-@model Nop.Plugin.Payments.BrainTree.Models.PaymentInfoModel
-@inject Nop.Core.IWorkContext _workContext
-@inject IAddressService _addressService
-@inject IStateProvinceService _stateProvinceService
-@inject ICountryService _countryService
-@inject Nop.Core.Domain.Orders.OrderSettings _orderSettings
+﻿@model PaymentInfoModel
 
 @{
     Layout = "";
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeScriptPath, excludeFromBundle: true);
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeClientScriptPath, excludeFromBundle: true);
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.BraintreeHostedFieldsScriptPath, excludeFromBundle: true);
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.Braintree3DSecureScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.ScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.ClientScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.HostedFieldsScriptPath, excludeFromBundle: true);
+    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.SecureScriptPath, excludeFromBundle: true);
 }
 
 <script asp-location="Footer">
     $(document).ready(function () {
 
-        var authorization = '@ViewBag.ClientToken';
+        var authorization = '@Model.ClientToken';
         var submitForm = false;
         var stepBack = false;
 
-        var onePageCheckout = @_orderSettings.OnePageCheckoutEnabled.ToString().ToLower();
+        var onePageCheckout = @orderSettings.OnePageCheckoutEnabled.ToString().ToLower();
 
         var components = {
             client: null,
@@ -91,14 +83,14 @@
         function verifyCard(payload) {
 
             @{
-                var address = _addressService.GetAddressById(_workContext.CurrentCustomer.BillingAddressId ?? 0);
-                var stateProvince = _stateProvinceService.GetStateProvinceByAddress(address);
-                var country = _countryService.GetCountryByAddress(address);
+                var address = addressService.GetAddressById(workContext.CurrentCustomer.BillingAddressId ?? 0);
+                var stateProvince = stateProvinceService.GetStateProvinceByAddress(address);
+                var country = countryService.GetCountryByAddress(address);
             }
 
             components.threeDSecure.verifyCard({
                 bin : payload.details.bin,
-                amount: '@ViewBag.OrderTotal',
+                amount: '@((Model.OrderTotal ?? 0M).ToString("0.00", CultureInfo.InvariantCulture))',
                 nonce: payload.nonce,
                 addFrame: addFrame,
                 removeFrame: removeFrame,
@@ -188,10 +180,7 @@
 </style>
 
 <input type="hidden" asp-for="Errors" />
-<div style="color:red; margin:0 auto" id="braintree-errors">
-
-</div>
-
+<div style="color:red; margin:0 auto" id="braintree-errors"></div>
 
 <table width="100%" cellspacing="2" cellpadding="1" border="0">
     <tr>
@@ -221,7 +210,9 @@
     </tr>
 </table>
 
-<div id="braintree-authentication">
-</div>
+<div id="braintree-authentication"></div>
 
-@Html.NopInlineScripts(ResourceLocation.Footer)
+@if (orderSettings.OnePageCheckoutEnabled)
+{
+    @Html.NopInlineScripts(ResourceLocation.Footer)
+}

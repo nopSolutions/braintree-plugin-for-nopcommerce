@@ -3,21 +3,29 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework.Models;
 using Nop.Web.Framework.Mvc.ModelBinding;
 
-namespace Nop.Plugin.Payments.BrainTree.Models
+namespace Nop.Plugin.Payments.Braintree.Models
 {
+    /// <summary>
+    /// Represents a payment info model
+    /// </summary>
     public class PaymentInfoModel : BaseNopModel
     {
+        #region Ctor
+
         public PaymentInfoModel()
         {
             ExpireMonths = new List<SelectListItem>();
             ExpireYears = new List<SelectListItem>();
         }
 
+        #endregion
+
+        #region Properties
+
         [NopResourceDisplayName("Payment.SelectCreditCard")]
         public string CreditCardType { get; set; }
 
         [NopResourceDisplayName("Payment.CardholderName")]
-
         public string CardholderName { get; set; }
 
         [NopResourceDisplayName("Payment.CardNumber")]
@@ -39,5 +47,11 @@ namespace Nop.Plugin.Payments.BrainTree.Models
         public string Errors { get; set; }
 
         public string CardNonce { get; set; }
+
+        public string ClientToken { get; set; }
+
+        public decimal? OrderTotal { get; set; }
+
+        #endregion
     }
 }
