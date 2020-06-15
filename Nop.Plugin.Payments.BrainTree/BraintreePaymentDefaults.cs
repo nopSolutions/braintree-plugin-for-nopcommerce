@@ -8,7 +8,7 @@
         /// <summary>
         /// Gets the plugin system name
         /// </summary>
-        public static string SystemName => "Payments.Braintree";
+        public static string SystemName => "Payments.BrainTree";
 
         /// <summary>
         /// Gets the nopCommerce partner code
