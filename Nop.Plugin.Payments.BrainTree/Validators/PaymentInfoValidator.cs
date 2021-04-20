@@ -19,23 +19,23 @@ namespace Nop.Plugin.Payments.Braintree.Validators
 
             RuleFor(model => model.CardholderName)
                 .NotEmpty()
-                .WithMessage(localizationService.GetResource("Payment.CardholderName.Required"));
+                .WithMessageAwait(localizationService.GetResourceAsync("Payment.CardholderName.Required"));
 
             RuleFor(model => model.CardNumber)
                 .IsCreditCard()
-                .WithMessage(localizationService.GetResource("Payment.CardNumber.Wrong"));
+                .WithMessageAwait(localizationService.GetResourceAsync("Payment.CardNumber.Wrong"));
 
             RuleFor(model => model.CardCode)
                 .Matches(@"^[0-9]{3,4}$")
-                .WithMessage(localizationService.GetResource("Payment.CardCode.Wrong"));
+                .WithMessageAwait(localizationService.GetResourceAsync("Payment.CardCode.Wrong"));
 
             RuleFor(model => model.ExpireMonth)
                 .NotEmpty()
-                .WithMessage(localizationService.GetResource("Payment.ExpireMonth.Required"));
+                .WithMessageAwait(localizationService.GetResourceAsync("Payment.ExpireMonth.Required"));
 
             RuleFor(model => model.ExpireYear)
                 .NotEmpty()
-                .WithMessage(localizationService.GetResource("Payment.ExpireYear.Required"));
+                .WithMessageAwait(localizationService.GetResourceAsync("Payment.ExpireYear.Required"));
         }
 
         #endregion

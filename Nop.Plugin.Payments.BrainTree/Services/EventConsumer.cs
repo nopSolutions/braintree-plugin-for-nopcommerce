@@ -1,4 +1,5 @@
-﻿using Nop.Core.Domain.Directory;
+﻿using System.Threading.Tasks;
+using Nop.Core.Domain.Directory;
 using Nop.Core.Events;
 using Nop.Services.Events;
 using Nop.Services.Payments;
@@ -38,21 +39,23 @@ namespace Nop.Plugin.Payments.Braintree.Services
         #region Methods
 
         /// <summary>
-        /// Handle currency deleted event
+        /// Handle event
         /// </summary>
-        /// <param name="eventMessage">Event message</param>
-        public void HandleEvent(EntityDeletedEvent<Currency> eventMessage)
+        /// <param name="eventMessage">Event</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public async Task HandleEventAsync(EntityDeletedEvent<Currency> eventMessage)
         {
-            _braintreeMerchantService.DeleteMerchants(eventMessage.Entity.CurrencyCode);
+            await _braintreeMerchantService.DeleteMerchantsAsync(eventMessage.Entity.CurrencyCode);
         }
 
         /// <summary>
-        /// Handle page rendering event
+        /// Handle event
         /// </summary>
-        /// <param name="eventMessage">Event message</param>
-        public void HandleEvent(PageRenderingEvent eventMessage)
+        /// <param name="eventMessage">Event</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public async Task HandleEventAsync(PageRenderingEvent eventMessage)
         {
-            if (!_paymentPluginManager.IsPluginActive(BraintreePaymentDefaults.SystemName))
+            if (!await _paymentPluginManager.IsPluginActiveAsync(BraintreePaymentDefaults.SystemName))
                 return;
 
             if (!_braintreePaymentSettings.Use3DS)

@@ -16,17 +16,17 @@ namespace Nop.Plugin.Payments.Braintree.Validators
         {
             RuleFor(model => model.MerchantId)
                 .NotEmpty()
-                .WithMessage(localizationService.GetResource("Plugins.Payments.Braintree.Fields.MerchantId.Required"))
+                .WithMessageAwait(localizationService.GetResourceAsync("Plugins.Payments.Braintree.Fields.MerchantId.Required"))
                 .When(model => !model.UseSandbox);
 
             RuleFor(model => model.PrivateKey)
                 .NotEmpty()
-                .WithMessage(localizationService.GetResource("Plugins.Payments.Braintree.Fields.PrivateKey.Required"))
+                .WithMessageAwait(localizationService.GetResourceAsync("Plugins.Payments.Braintree.Fields.PrivateKey.Required"))
                 .When(model => !model.UseSandbox);
 
             RuleFor(model => model.PublicKey)
                 .NotEmpty()
-                .WithMessage(localizationService.GetResource("Plugins.Payments.Braintree.Fields.PublicKey.Required"))
+                .WithMessageAwait(localizationService.GetResourceAsync("Plugins.Payments.Braintree.Fields.PublicKey.Required"))
                 .When(model => !model.UseSandbox);
         }
 

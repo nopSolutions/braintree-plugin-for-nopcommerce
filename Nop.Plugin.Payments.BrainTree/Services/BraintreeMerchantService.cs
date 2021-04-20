@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.ComponentModel;
 using Nop.Data;
 using Nop.Plugin.Payments.Braintree.Domain;
-using Nop.Services.Caching;
 using Nop.Services.Directory;
 
 namespace Nop.Plugin.Payments.Braintree.Services
@@ -43,7 +43,6 @@ namespace Nop.Plugin.Payments.Braintree.Services
 
         #region Fields
 
-        private readonly ICacheKeyService _cacheKeyService;
         private readonly ICurrencyService _currencyService;
         private readonly IRepository<BraintreeMerchantRecord> _btmrRepository;
         private readonly IStaticCacheManager _staticCacheManager;
@@ -55,13 +54,11 @@ namespace Nop.Plugin.Payments.Braintree.Services
 
         #region Ctor
 
-        public BraintreeMerchantService(ICacheKeyService cacheKeyService,
-            ICurrencyService currencyService,
+        public BraintreeMerchantService(ICurrencyService currencyService,
             IRepository<BraintreeMerchantRecord> btmrRepository,
             IStaticCacheManager staticCacheManager,
             IStoreContext storeContext)
         {
-            _cacheKeyService = cacheKeyService;
             _currencyService = currencyService;
             _btmrRepository = btmrRepository;
             _staticCacheManager = staticCacheManager;
@@ -75,32 +72,33 @@ namespace Nop.Plugin.Payments.Braintree.Services
         private List<BraintreeMerchantRecord> GetMerchantsByStoreId(int storeId)
         {
             return _staticCacheManager.Get(
-                _cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId),
+                _staticCacheManager.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId),
                 () => { return _btmrRepository.Table.Where(record => record.StoreId == storeId).ToList(); });
         }
 
         private void UpdateTable(int storeId)
         {
+            //TODO: use async lock
             using (new ReaderWriteLockDisposable(_locker))
             {
-                var currencies = _currencyService.GetAllCurrencies(storeId: storeId).ToList();
+                var currencies = _currencyService.GetAllCurrenciesAsync(storeId: storeId).Result.ToList();
 
                 foreach (var currency in currencies)
                 {
                     if (_btmrRepository.Table.Any(record => record.StoreId == storeId && record.CurrencyCode == currency.CurrencyCode))
                         continue;
 
-                    _btmrRepository.Insert(new BraintreeMerchantRecord
+                    _btmrRepository.InsertAsync(new BraintreeMerchantRecord
                     {
                         CurrencyCode = currency.CurrencyCode,
                         MerchantAccountId = string.Empty,
                         StoreId = storeId
-                    });
+                    }).Wait();
 
-                    _staticCacheManager.RemoveByPrefix(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currency.CurrencyCode));
+                    _staticCacheManager.RemoveByPrefixAsync(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currency.CurrencyCode)).Wait();
                 }
 
-                _staticCacheManager.Remove(_cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId));
+                _staticCacheManager.RemoveAsync(_staticCacheManager.PrepareKeyForDefaultCache(BRAINTREESERVICE_EXISTS_CURRENCY_KEY, storeId)).Wait();
             }
         }
 
@@ -112,20 +110,18 @@ namespace Nop.Plugin.Payments.Braintree.Services
         /// Delete merchants by currency code
         /// </summary>
         /// <param name="currencyCode">Currency code</param>
-        public void DeleteMerchants(string currencyCode)
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public async Task DeleteMerchantsAsync(string currencyCode)
         {
             var merchants = _btmrRepository.Table.Where(record => record.CurrencyCode == currencyCode).ToList();
 
             if (!merchants.Any())
                 return;
 
-            foreach (var merchant in merchants)
-            {
-                _btmrRepository.Delete(merchant);
-            }
+            await _btmrRepository.DeleteAsync(merchants);
 
-            _staticCacheManager.RemoveByPrefix(BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX);
-            _staticCacheManager.RemoveByPrefix(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currencyCode));
+            await _staticCacheManager.RemoveByPrefixAsync(BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX);
+            await _staticCacheManager.RemoveByPrefixAsync(string.Format(BRAINTREESERVICE_MERCHANT_PREFIX, currencyCode));
         }
 
         /// <summary>
@@ -134,7 +130,10 @@ namespace Nop.Plugin.Payments.Braintree.Services
         /// <param name="storeId">Store identifier</param>
         /// <param name="pageIndex">Page index</param>
         /// <param name="pageSize">Page size</param>
-        /// <returns>Merchant records</returns>
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the merchant records
+        /// </returns>
         public IPagedList<BraintreeMerchantRecord> GetMerchants(int storeId, int pageIndex = 0,
             int pageSize = int.MaxValue)
         {
@@ -148,31 +147,35 @@ namespace Nop.Plugin.Payments.Braintree.Services
         /// </summary>
         /// <param name="id">Merchant record identifier</param>
         /// <param name="merchantAccountId">Merchant account identifier</param>
-        public void UpdateMerchant(int id, string merchantAccountId)
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public async Task UpdateMerchantAsync(int id, string merchantAccountId)
         {
-            var merchant = _btmrRepository.GetById(id);
+            var merchant = await _btmrRepository.GetByIdAsync(id);
 
             if (merchant == null)
                 return;
 
             merchant.MerchantAccountId = merchantAccountId;
 
-            _btmrRepository.Update(merchant);
-            _staticCacheManager.Remove(_cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_MERCHANT_KEY, merchant.CurrencyCode, merchant.StoreId));
+            await _btmrRepository.UpdateAsync(merchant);
+            await _staticCacheManager.RemoveAsync(_staticCacheManager.PrepareKeyForDefaultCache(BRAINTREESERVICE_MERCHANT_KEY, merchant.CurrencyCode, merchant.StoreId));
         }
 
         /// <summary>
         /// Get merchant identifier 
         /// </summary>
         /// <param name="currencyCode">Currency code</param>
-        /// <returns>Merchant identifier</returns>
-        public string GetMerchantId(string currencyCode)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the merchant identifier
+        /// </returns>
+        public async Task<string> GetMerchantIdAsync(string currencyCode)
         {
-            var merchant = _staticCacheManager.Get(
-                _cacheKeyService.PrepareKeyForDefaultCache(BRAINTREESERVICE_MERCHANT_KEY, currencyCode, _storeContext.CurrentStore.Id), () =>
+            var merchant = await _staticCacheManager.GetAsync(
+                _staticCacheManager.PrepareKeyForDefaultCache(BRAINTREESERVICE_MERCHANT_KEY, currencyCode, (await _storeContext.GetCurrentStoreAsync()).Id), () =>
                 {
                     var rez = _btmrRepository.Table.FirstOrDefault(record =>
-                        record.CurrencyCode == currencyCode && record.StoreId == _storeContext.CurrentStore.Id);
+                        record.CurrencyCode == currencyCode && record.StoreId == _storeContext.GetCurrentStore().Id);
 
                     if (string.IsNullOrEmpty(rez?.MerchantAccountId ?? string.Empty))
                         rez = _btmrRepository.Table.FirstOrDefault(record =>

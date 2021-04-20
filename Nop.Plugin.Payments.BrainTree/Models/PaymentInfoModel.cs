@@ -8,7 +8,7 @@ namespace Nop.Plugin.Payments.Braintree.Models
     /// <summary>
     /// Represents a payment info model
     /// </summary>
-    public class PaymentInfoModel : BaseNopModel
+    public record PaymentInfoModel : BaseNopModel
     {
         #region Ctor
 

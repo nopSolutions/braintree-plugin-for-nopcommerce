@@ -7,7 +7,7 @@ namespace Nop.Plugin.Payments.Braintree.Models
     /// <summary>
     /// Represents a configuration model
     /// </summary>
-    public class ConfigurationModel : BaseSearchModel
+    public record ConfigurationModel : BaseSearchModel
     {
         public int ActiveStoreScopeConfiguration { get; set; }
 
@@ -25,7 +25,6 @@ namespace Nop.Plugin.Payments.Braintree.Models
 
         [NopResourceDisplayName("Plugins.Payments.Braintree.Fields.PrivateKey")]
         [DataType(DataType.Password)]
-        [NoTrim]
         public string PrivateKey { get; set; }
         public bool PrivateKey_OverrideForStore { get; set; }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Braintree;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -77,13 +78,16 @@ namespace Nop.Plugin.Payments.Braintree
         /// Process a payment
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
-        /// <returns>Process payment result</returns>
-        public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the process payment result
+        /// </returns>
+        public async Task<ProcessPaymentResult> ProcessPaymentAsync(ProcessPaymentRequest processPaymentRequest)
         {
             var processPaymentResult = new ProcessPaymentResult();
 
             //get customer
-            var customer = _customerService.GetCustomerById(processPaymentRequest.CustomerId);
+            var customer = await _customerService.GetCustomerByIdAsync(processPaymentRequest.CustomerId);
 
             //get settings
             var useSandbox = _braintreePaymentSettings.UseSandbox;
@@ -100,7 +104,7 @@ namespace Nop.Plugin.Payments.Braintree
                 PrivateKey = privateKey
             };
 
-            var billingAddress = _addressService.GetAddressById(customer.BillingAddressId ?? 0);
+            var billingAddress = await _addressService.GetAddressByIdAsync(customer.BillingAddressId ?? 0);
 
             //search to see if customer is already in the vault
             var searchRequest = new CustomerSearchRequest().Email.Is(billingAddress?.Email);
@@ -114,9 +118,9 @@ namespace Nop.Plugin.Payments.Braintree
             if (_braintreePaymentSettings.UseMultiCurrency)
             {
                 //get currency
-                var currency = _workContext.WorkingCurrency;
+                var currency = await _workContext.GetWorkingCurrencyAsync();
 
-                currencyMerchantId = _braintreeMerchantService.GetMerchantId(currency.CurrencyCode);
+                currencyMerchantId = await _braintreeMerchantService.GetMerchantIdAsync(currency.CurrencyCode);
 
                 if (!string.IsNullOrEmpty(currencyMerchantId))
                     amount = _currencyService.ConvertCurrency(amount, currency.Rate);
@@ -160,7 +164,7 @@ namespace Nop.Plugin.Payments.Braintree
             };
             transactionRequest.Customer = customerRequest;
 
-            var country = _countryService.GetCountryByAddress(billingAddress);
+            var country = await _countryService.GetCountryByAddressAsync(billingAddress);
 
             //address request
             var addressRequest = new AddressRequest
@@ -198,32 +202,40 @@ namespace Nop.Plugin.Payments.Braintree
         /// Post process payment (used by payment gateways that require redirecting to a third-party URL)
         /// </summary>
         /// <param name="postProcessPaymentRequest">Payment info required for an order processing</param>
-        public void PostProcessPayment(PostProcessPaymentRequest postProcessPaymentRequest)
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public Task PostProcessPaymentAsync(PostProcessPaymentRequest postProcessPaymentRequest)
         {
             //nothing
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// Returns a value indicating whether payment method should be hidden during checkout
         /// </summary>
         /// <param name="cart">Shopping cart</param>
-        /// <returns>true - hide; false - display.</returns>
-        public bool HidePaymentMethod(IList<ShoppingCartItem> cart)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the rue - hide; false - display.
+        /// </returns>
+        public Task<bool> HidePaymentMethodAsync(IList<ShoppingCartItem> cart)
         {
             //you can put any logic here
             //for example, hide this payment method if all products in the cart are downloadable
             //or hide this payment method if current customer is from certain country
-            return false;
+            return Task.FromResult(false);
         }
 
         /// <summary>
         /// Gets additional handling fee
         /// </summary>
         /// <param name="cart">Shopping cart</param>
-        /// <returns>Additional handling fee</returns>
-        public decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the additional handling fee
+        /// </returns>
+        public async Task<decimal> GetAdditionalHandlingFeeAsync(IList<ShoppingCartItem> cart)
         {
-            var result = _paymentService.CalculateAdditionalFee(cart,
+            var result = await _paymentService.CalculateAdditionalFeeAsync(cart,
                 _braintreePaymentSettings.AdditionalFee, _braintreePaymentSettings.AdditionalFeePercentage);
 
             return result;
@@ -233,83 +245,104 @@ namespace Nop.Plugin.Payments.Braintree
         /// Captures payment
         /// </summary>
         /// <param name="capturePaymentRequest">Capture payment request</param>
-        /// <returns>Capture payment result</returns>
-        public CapturePaymentResult Capture(CapturePaymentRequest capturePaymentRequest)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the capture payment result
+        /// </returns>
+        public Task<CapturePaymentResult> CaptureAsync(CapturePaymentRequest capturePaymentRequest)
         {
             var result = new CapturePaymentResult();
             result.AddError("Capture method not supported");
 
-            return result;
+            return Task.FromResult(result);
         }
 
         /// <summary>
         /// Refunds a payment
         /// </summary>
         /// <param name="refundPaymentRequest">Request</param>
-        /// <returns>Result</returns>
-        public RefundPaymentResult Refund(RefundPaymentRequest refundPaymentRequest)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the result
+        /// </returns>
+        public Task<RefundPaymentResult> RefundAsync(RefundPaymentRequest refundPaymentRequest)
         {
             var result = new RefundPaymentResult();
             result.AddError("Refund method not supported");
 
-            return result;
+            return Task.FromResult(result);
         }
 
         /// <summary>
         /// Voids a payment
         /// </summary>
         /// <param name="voidPaymentRequest">Request</param>
-        /// <returns>Result</returns>
-        public VoidPaymentResult Void(VoidPaymentRequest voidPaymentRequest)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the result
+        /// </returns>
+        public Task<VoidPaymentResult> VoidAsync(VoidPaymentRequest voidPaymentRequest)
         {
             var result = new VoidPaymentResult();
             result.AddError("Void method not supported");
 
-            return result;
+            return Task.FromResult(result);
         }
 
         /// <summary>
         /// Process recurring payment
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
-        /// <returns>Process payment result</returns>
-        public ProcessPaymentResult ProcessRecurringPayment(ProcessPaymentRequest processPaymentRequest)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the process payment result
+        /// </returns>
+        public Task<ProcessPaymentResult> ProcessRecurringPaymentAsync(ProcessPaymentRequest processPaymentRequest)
         {
             var result = new ProcessPaymentResult();
             result.AddError("Recurring payment not supported");
 
-            return result;
+            return Task.FromResult(result);
         }
 
         /// <summary>
         /// Cancels a recurring payment
         /// </summary>
         /// <param name="cancelPaymentRequest">Request</param>
-        /// <returns>Result</returns>
-        public CancelRecurringPaymentResult CancelRecurringPayment(CancelRecurringPaymentRequest cancelPaymentRequest)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the result
+        /// </returns>
+        public Task<CancelRecurringPaymentResult> CancelRecurringPaymentAsync(CancelRecurringPaymentRequest cancelPaymentRequest)
         {
             var result = new CancelRecurringPaymentResult();
             result.AddError("Recurring payment not supported");
 
-            return result;
+            return Task.FromResult(result);
         }
 
         /// <summary>
         /// Gets a value indicating whether customers can complete a payment after order is placed but not completed (for redirection payment methods)
         /// </summary>
         /// <param name="order">Order</param>
-        /// <returns>Result</returns>
-        public bool CanRePostProcessPayment(Order order)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the result
+        /// </returns>
+        public Task<bool> CanRePostProcessPaymentAsync(Order order)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
         /// <summary>
         /// Validate payment form
         /// </summary>
         /// <param name="form">The parsed form values</param>
-        /// <returns>List of validating errors</returns>
-        public IList<string> ValidatePaymentForm(IFormCollection form)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the list of validating errors
+        /// </returns>
+        public Task<IList<string>> ValidatePaymentFormAsync(IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException(nameof(form));
@@ -331,19 +364,22 @@ namespace Nop.Plugin.Payments.Braintree
             var validationResult = validator.Validate(model);
 
             if (validationResult.IsValid)
-                return warnings;
+                return Task.FromResult<IList<string>>(warnings);
 
             warnings.AddRange(validationResult.Errors.Select(error => error.ErrorMessage));
 
-            return warnings;
+            return Task.FromResult<IList<string>>(warnings);
         }
 
         /// <summary>
         /// Get payment information
         /// </summary>
         /// <param name="form">The parsed form values</param>
-        /// <returns>Payment info holder</returns>
-        public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the payment info holder
+        /// </returns>
+        public Task<ProcessPaymentRequest> GetPaymentInfoAsync(IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException(nameof(form));
@@ -360,7 +396,7 @@ namespace Nop.Plugin.Payments.Braintree
             if (form.TryGetValue("CardNonce", out var cardNonce) && !StringValues.IsNullOrEmpty(cardNonce))
                 paymentInfo.CustomValues.Add("CardNonce", cardNonce.ToString());
 
-            return paymentInfo;
+            return Task.FromResult(paymentInfo);
         }
 
         /// <summary>
@@ -380,18 +416,19 @@ namespace Nop.Plugin.Payments.Braintree
         }
 
         /// <summary>
-        /// Install the plugin
+        /// Install plugin
         /// </summary>
-        public override void Install()
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public override async Task InstallAsync()
         {
             //settings
-            _settingService.SaveSetting(new BraintreePaymentSettings
+            await _settingService.SaveSettingAsync(new BraintreePaymentSettings
             {
                 UseSandbox = true
             });
 
             //locales
-            _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
+            await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
             {
                 ["Plugins.Payments.Braintree.Currency.Fields.CurrencyCode"] = "Currency code",
                 ["Plugins.Payments.Braintree.Currency.Fields.MerchantAccountId"] = "Merchant account",
@@ -417,21 +454,35 @@ namespace Nop.Plugin.Payments.Braintree
                 ["Plugins.Payments.Braintree.PaymentMethodDescription"] = "Pay by credit / debit card"
             });
 
-            base.Install();
+            await base.InstallAsync();
         }
 
         /// <summary>
-        /// Uninstall the plugin
+        /// Uninstall plugin
         /// </summary>
-        public override void Uninstall()
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public override async Task UninstallAsync()
         {
             //settings
-            _settingService.DeleteSetting<BraintreePaymentSettings>();
+            await _settingService.DeleteSettingAsync<BraintreePaymentSettings>();
 
             //locales
-            _localizationService.DeletePluginLocaleResources("Plugins.Payments.Braintree");
+            await _localizationService.DeleteLocaleResourcesAsync("Plugins.Payments.Braintree");
 
-            base.Uninstall();
+            await base.UninstallAsync();
+        }
+
+        /// <summary>
+        /// Gets a payment method description that will be displayed on checkout pages in the public store
+        /// </summary>
+        /// <remarks>
+        /// return description of this payment method to be display on "payment method" checkout step. good practice is to make it localizable
+        /// for example, for a redirection payment method, description may be like this: "You will be redirected to PayPal site to complete the payment"
+        /// </remarks>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        public async Task<string> GetPaymentMethodDescriptionAsync()
+        {
+            return await _localizationService.GetResourceAsync("Plugins.Payments.Braintree.PaymentMethodDescription");
         }
 
         #endregion
@@ -472,11 +523,6 @@ namespace Nop.Plugin.Payments.Braintree
         /// Gets a value indicating whether we should display a payment information page for this plugin
         /// </summary>
         public bool SkipPaymentInfo => false;
-
-        /// <summary>
-        /// Gets a payment method description that will be displayed on checkout pages in the public store
-        /// </summary>
-        public string PaymentMethodDescription => _localizationService.GetResource("Plugins.Payments.Braintree.PaymentMethodDescription");
 
         #endregion
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Braintree;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -58,8 +59,11 @@ namespace Nop.Plugin.Payments.Braintree.Components
         /// </summary>
         /// <param name="widgetZone">Widget zone name</param>
         /// <param name="additionalData">Additional data</param>
-        /// <returns>View component result</returns>
-        public IViewComponentResult Invoke(string widgetZone, object additionalData)
+        /// <returns>
+        /// A task that represents the asynchronous operation
+        /// The task result contains the view component result
+        /// </returns>
+        public async Task<IViewComponentResult> InvokeAsync(string widgetZone, object additionalData)
         {
             var model = new PaymentInfoModel();
 
@@ -76,9 +80,9 @@ namespace Nop.Plugin.Payments.Braintree.Components
                     };
                     var clientToken = gateway.ClientToken.Generate();
 
-                    var cart = _shoppingCartService
-                        .GetShoppingCart(_workContext.CurrentCustomer, ShoppingCartType.ShoppingCart, _storeContext.CurrentStore.Id);
-                    var orderTotal = _orderTotalCalculationService.GetShoppingCartTotal(cart);
+                    var cart = await _shoppingCartService
+                        .GetShoppingCartAsync(await _workContext.GetCurrentCustomerAsync(), ShoppingCartType.ShoppingCart, (await _storeContext.GetCurrentStoreAsync()).Id);
+                    var (orderTotal, _, _, _, _, _) = await _orderTotalCalculationService.GetShoppingCartTotalAsync(cart);
 
                     model.ClientToken = clientToken;
                     model.OrderTotal = orderTotal;
@@ -89,7 +93,7 @@ namespace Nop.Plugin.Payments.Braintree.Components
                     if (_orderSettings.OnePageCheckoutEnabled)
                         ModelState.AddModelError(string.Empty, exception.Message);
                     else
-                        _notificationService.ErrorNotification(exception);
+                        await _notificationService.ErrorNotificationAsync(exception);
                 }
 
                 return View("~/Plugins/Payments.Braintree/Views/PaymentInfo.3DS.cshtml", model);

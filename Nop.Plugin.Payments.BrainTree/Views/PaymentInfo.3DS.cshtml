@@ -83,9 +83,9 @@
         function verifyCard(payload) {
 
             @{
-                var address = addressService.GetAddressById(workContext.CurrentCustomer.BillingAddressId ?? 0);
-                var stateProvince = stateProvinceService.GetStateProvinceByAddress(address);
-                var country = countryService.GetCountryByAddress(address);
+                var address = await addressService.GetAddressByIdAsync((await workContext.GetCurrentCustomerAsync()).BillingAddressId ?? 0);
+                var stateProvince = await stateProvinceService.GetStateProvinceByAddressAsync(address);
+                var country = await countryService.GetCountryByAddressAsync(address);
             }
 
             components.threeDSecure.verifyCard({
