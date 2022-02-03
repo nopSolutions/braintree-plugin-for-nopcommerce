@@ -2,10 +2,10 @@
 
 @{
     Layout = "";
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.ScriptPath, excludeFromBundle: true);
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.ClientScriptPath, excludeFromBundle: true);
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.HostedFieldsScriptPath, excludeFromBundle: true);
-    Html.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.SecureScriptPath, excludeFromBundle: true);
+    NopHtml.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.ScriptPath, excludeFromBundle: true);
+    NopHtml.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.ClientScriptPath, excludeFromBundle: true);
+    NopHtml.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.HostedFieldsScriptPath, excludeFromBundle: true);
+    NopHtml.AddScriptParts(ResourceLocation.Footer, BraintreePaymentDefaults.SecureScriptPath, excludeFromBundle: true);
 }
 
 <script asp-location="Footer">
@@ -127,7 +127,7 @@
             });
         }
 
-        $('input.payment-info-next-step-button').on('click', function (data) {
+        $('.payment-info-next-step-button').on('click', function (data) {
             $('#braintree-errors').html('');
             if (!submitForm) {
                 if (!stepBack) {
@@ -214,5 +214,5 @@
 
 @if (orderSettings.OnePageCheckoutEnabled)
 {
-    @Html.NopInlineScripts(ResourceLocation.Footer)
+    @NopHtml.GenerateInlineScripts(ResourceLocation.Footer)
 }

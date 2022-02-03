@@ -16,6 +16,7 @@ using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Directory;
 using Nop.Services.Localization;
+using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Plugins;
 using Environment = Braintree.Environment;
@@ -36,7 +37,7 @@ namespace Nop.Plugin.Payments.Braintree
         private readonly ICurrencyService _currencyService;
         private readonly ICustomerService _customerService;
         private readonly ILocalizationService _localizationService;
-        private readonly IPaymentService _paymentService;
+        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly ISettingService _settingService;
         private readonly IWebHelper _webHelper;
         private readonly IWorkContext _workContext;
@@ -52,7 +53,7 @@ namespace Nop.Plugin.Payments.Braintree
             ICurrencyService currencyService,
             ICustomerService customerService,
             ILocalizationService localizationService,
-            IPaymentService paymentService,
+            IOrderTotalCalculationService orderTotalCalculationService,
             ISettingService settingService,
             IWebHelper webHelper,
             IWorkContext workContext)
@@ -64,7 +65,7 @@ namespace Nop.Plugin.Payments.Braintree
             _currencyService = currencyService;
             _customerService = customerService;
             _localizationService = localizationService;
-            _paymentService = paymentService;
+            _orderTotalCalculationService = orderTotalCalculationService;
             _settingService = settingService;
             _webHelper = webHelper;
             _workContext = workContext;
@@ -137,7 +138,13 @@ namespace Nop.Plugin.Payments.Braintree
 
             if (_braintreePaymentSettings.Use3DS)
             {
-                transactionRequest.PaymentMethodNonce = processPaymentRequest.CustomValues["CardNonce"].ToString();
+                if (processPaymentRequest.CustomValues.ContainsKey("CardNonce"))
+                    transactionRequest.PaymentMethodNonce = processPaymentRequest.CustomValues["CardNonce"].ToString();
+                else
+                {
+                    processPaymentResult.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Braintree.Errors.3DSecureFailed"));
+                    return processPaymentResult;
+                }
             }
             else
             {
@@ -193,7 +200,7 @@ namespace Nop.Plugin.Payments.Braintree
             if (result.IsSuccess())
                 processPaymentResult.NewPaymentStatus = PaymentStatus.Paid;
             else
-                processPaymentResult.AddError("Error processing payment." + result.Message);
+                processPaymentResult.AddError((await _localizationService.GetResourceAsync("Plugins.Payments.Braintree.Errors.ErrorProcessingPayment")) + result.Message);
 
             return processPaymentResult;
         }
@@ -235,7 +242,7 @@ namespace Nop.Plugin.Payments.Braintree
         /// </returns>
         public async Task<decimal> GetAdditionalHandlingFeeAsync(IList<ShoppingCartItem> cart)
         {
-            var result = await _paymentService.CalculateAdditionalFeeAsync(cart,
+            var result = await _orderTotalCalculationService.CalculatePaymentAdditionalFeeAsync(cart,
                 _braintreePaymentSettings.AdditionalFee, _braintreePaymentSettings.AdditionalFeePercentage);
 
             return result;
@@ -428,10 +435,12 @@ namespace Nop.Plugin.Payments.Braintree
             });
 
             //locales
-            await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+            await _localizationService.AddOrUpdateLocaleResourceAsync(new Dictionary<string, string>
             {
                 ["Plugins.Payments.Braintree.Currency.Fields.CurrencyCode"] = "Currency code",
                 ["Plugins.Payments.Braintree.Currency.Fields.MerchantAccountId"] = "Merchant account",
+                ["Plugins.Payments.Braintree.Errors.3DSecureFailed"] = "The 3D Secure authentication is failed",
+                ["Plugins.Payments.Braintree.Errors.ErrorProcessingPayment"] = "Error processing payment.",
                 ["Plugins.Payments.Braintree.Fields.AdditionalFee.Hint"] = "Enter additional fee to charge your customers.",
                 ["Plugins.Payments.Braintree.Fields.AdditionalFee"] = "Additional fee",
                 ["Plugins.Payments.Braintree.Fields.AdditionalFeePercentage.Hint"] = "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.",

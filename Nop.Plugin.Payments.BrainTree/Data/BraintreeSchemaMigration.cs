@@ -1,11 +1,11 @@
 ﻿using FluentMigrator;
+using Nop.Data.Extensions;
 using Nop.Data.Migrations;
 using Nop.Plugin.Payments.Braintree.Domain;
 
 namespace Nop.Plugin.Payments.Braintree.Data
 {
-    [SkipMigrationOnUpdate]
-    [NopMigration("2020/06/02 13:40:55:1687549", "Payments.Braintree base schema")]
+    [NopMigration("2020/06/02 13:40:55:1687549", "Payments.Braintree base schema", MigrationProcessType.Installation)]
     public class BraintreeSchemaMigration : AutoReversingMigration
     {
         #region Fields
@@ -30,7 +30,7 @@ namespace Nop.Plugin.Payments.Braintree.Data
         /// </summary>
         public override void Up()
         {
-            _migrationManager.BuildTable<BraintreeMerchantRecord>(Create);
+            Create.TableFor<BraintreeMerchantRecord>();
         }
 
         #endregion
