@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
+using Nop.Plugin.Payments.Braintree.Components;
 using Nop.Plugin.Payments.Braintree.Models;
 using Nop.Plugin.Payments.Braintree.Services;
 using Nop.Plugin.Payments.Braintree.Validators;
@@ -417,9 +418,9 @@ namespace Nop.Plugin.Payments.Braintree
         /// <summary>
         /// Gets a view component for displaying plugin in public store ("payment info" checkout step)
         /// </summary>
-        public string GetPublicViewComponentName()
+        public Type GetPublicViewComponent()
         {
-            return BraintreePaymentDefaults.PAYMENT_INFO_VIEW_COMPONENT;
+            return typeof(PaymentInfoViewComponent);
         }
 
         /// <summary>

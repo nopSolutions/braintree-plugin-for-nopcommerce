@@ -16,7 +16,7 @@ namespace Nop.Plugin.Payments.Braintree.Components
     /// <summary>
     /// Represents the view component to display payment info in public store
     /// </summary>
-    [ViewComponent(Name = BraintreePaymentDefaults.PAYMENT_INFO_VIEW_COMPONENT)]
+    [ViewComponent(Name = "BraintreePaymentInfo")]
     public class PaymentInfoViewComponent : NopViewComponent
     {
         #region Fields

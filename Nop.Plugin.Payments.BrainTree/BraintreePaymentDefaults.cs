@@ -39,10 +39,5 @@
         /// Gets the service SCA js script URL
         /// </summary>
         public static string SecureScriptPath => "https://js.braintreegateway.com/web/3.62.1/js/three-d-secure.min.js";
-
-        /// <summary>
-        /// Gets a name of the view component to display payment info in public store
-        /// </summary>
-        public const string PAYMENT_INFO_VIEW_COMPONENT = "BraintreePaymentInfo";
     }
 }
