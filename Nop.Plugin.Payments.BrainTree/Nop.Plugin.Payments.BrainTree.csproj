@@ -53,7 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Braintree" Version="4.17.0" />
+    <PackageReference Include="Braintree" Version="5.14.0" />
   </ItemGroup>
 
   <!-- This target execute after "Build" target -->
