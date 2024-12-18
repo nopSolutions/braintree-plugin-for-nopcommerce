@@ -27,7 +27,6 @@ public class BraintreeController : BasePaymentController
     private readonly BraintreeMerchantService _braintreeMerchantService;
     private readonly ILocalizationService _localizationService;
     private readonly INotificationService _notificationService;
-    private readonly IPermissionService _permissionService;
     private readonly ISettingService _settingService;
     private readonly IStoreContext _storeContext;
 
@@ -38,14 +37,12 @@ public class BraintreeController : BasePaymentController
     public BraintreeController(BraintreeMerchantService braintreeMerchantService,
         ILocalizationService localizationService,
         INotificationService notificationService,
-        IPermissionService permissionService,
         ISettingService settingService,
         IStoreContext storeContext)
     {
         _braintreeMerchantService = braintreeMerchantService;
         _localizationService = localizationService;
         _notificationService = notificationService;
-        _permissionService = permissionService;
         _settingService = settingService;
         _storeContext = storeContext;
     }
@@ -54,11 +51,9 @@ public class BraintreeController : BasePaymentController
 
     #region Methods
 
+    [CheckPermission(StandardPermission.Configuration.MANAGE_PAYMENT_METHODS)]
     public async Task<IActionResult> Configure()
     {
-        if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
-            return AccessDeniedView();
-
         //load settings for a chosen store scope
         var storeScope = await _storeContext.GetActiveStoreScopeConfigurationAsync();
         var braintreePaymentSettings = await _settingService.LoadSettingAsync<BraintreePaymentSettings>(storeScope);
@@ -92,11 +87,9 @@ public class BraintreeController : BasePaymentController
     }
 
     [HttpPost]
+    [CheckPermission(StandardPermission.Configuration.MANAGE_PAYMENT_METHODS)]
     public async Task<IActionResult> Configure(ConfigurationModel model)
     {
-        if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
-            return AccessDeniedView();
-
         if (!ModelState.IsValid)
             return await Configure();
 
@@ -135,11 +128,9 @@ public class BraintreeController : BasePaymentController
     }
 
     [HttpPost]
+    [CheckPermission(StandardPermission.Configuration.MANAGE_PAYMENT_METHODS)]
     public virtual async Task<IActionResult> GetCurrencies(ConfigurationModel searchModel)
     {
-        if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
-            return await AccessDeniedDataTablesJson();
-
         //load settings for a chosen store scope
         var storeId = await _storeContext.GetActiveStoreScopeConfigurationAsync();
 
@@ -161,11 +152,9 @@ public class BraintreeController : BasePaymentController
     }
 
     [HttpPost]
+    [CheckPermission(StandardPermission.Configuration.MANAGE_PAYMENT_METHODS)]
     public virtual async Task<IActionResult> UpdateCurrency(CurrencyModel model)
     {
-        if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
-            return AccessDeniedView();
-
         await _braintreeMerchantService.UpdateMerchantAsync(model.Id, model.MerchantAccountId);
 
         return new NullJsonResult();

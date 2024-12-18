@@ -36,7 +36,7 @@
                         <nop-label asp-for="PrivateKey" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="PrivateKey" asp-required="true" asp-value="@Model.PrivateKey" />
+                        <nop-editor asp-for="PrivateKey" asp-required="true" html-attributes="@(new { value = Model.PrivateKey })" />
                         <span asp-validation-for="PrivateKey"></span>
                     </div>
                 </div>
