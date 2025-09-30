@@ -20,7 +20,7 @@ public class BraintreeMerchantService
     /// <remarks>
     /// {0} : store identifier
     /// </remarks>
-    private readonly CacheKey _braintreeserviceExistsCurrencyKey = new("Nop.braintree.existscurrencycodes-{0}", BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX);
+    private readonly CacheKey _braintreeserviceExistsCurrencyKey = new("Nop.braintree.existscurrencycodes-{0}");
 
     private const string BRAINTREESERVICE_EXISTS_CURRENCY_PREFIX = "Nop.braintree.existscurrencycodes";
 
@@ -31,7 +31,7 @@ public class BraintreeMerchantService
     /// {0} : currency code
     /// {1} : store identifier
     /// </remarks>
-    private readonly CacheKey _braintreeserviceMerchantKey = new("Nop.braintree.merchant-{0}-{1}", BRAINTREESERVICE_MERCHANT_PREFIX);
+    private readonly CacheKey _braintreeserviceMerchantKey = new("Nop.braintree.merchant-{0}-{1}");
 
     private const string BRAINTREESERVICE_MERCHANT_PREFIX = "Nop.braintree.merchant-{0}";
 

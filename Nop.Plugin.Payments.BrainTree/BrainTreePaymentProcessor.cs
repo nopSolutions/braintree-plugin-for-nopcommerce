@@ -135,8 +135,8 @@ public class BraintreePaymentProcessor : BasePlugin, IPaymentMethod
 
         if (_braintreePaymentSettings.Use3DS)
         {
-            if (processPaymentRequest.CustomValues.ContainsKey("CardNonce"))
-                transactionRequest.PaymentMethodNonce = processPaymentRequest.CustomValues["CardNonce"].ToString();
+            if (processPaymentRequest.CustomValues.TryGetValue("CardNonce", out var cardNonce))
+                transactionRequest.PaymentMethodNonce = cardNonce.Value;
             else
             {
                 processPaymentResult.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Braintree.Errors.3DSecureFailed"));
@@ -398,7 +398,10 @@ public class BraintreePaymentProcessor : BasePlugin, IPaymentMethod
         };
 
         if (form.TryGetValue("CardNonce", out var cardNonce) && !StringValues.IsNullOrEmpty(cardNonce))
-            paymentInfo.CustomValues.Add("CardNonce", cardNonce.ToString());
+        {
+            paymentInfo.CustomValues.Remove("CardNonce");
+            paymentInfo.CustomValues.Add(new("CardNonce", cardNonce.ToString(), displayToCustomer: false));
+        }
 
         return Task.FromResult(paymentInfo);
     }
